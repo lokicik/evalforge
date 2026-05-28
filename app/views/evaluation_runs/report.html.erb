@@ -1,0 +1,120 @@
+<div class="space-y-8 w-full max-w-5xl mx-auto py-8 px-4">
+  <div class="relative rounded-3xl bg-slate-900 text-white p-8 overflow-hidden shadow-xl border border-slate-800">
+    <div class="absolute inset-0 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 opacity-90"></div>
+    <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl"></div>
+
+    <div class="relative z-10 space-y-4">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-semibold backdrop-blur-md">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Public Summary Report
+        </span>
+        <span class="text-xs text-slate-400 font-mono"><%= @evaluation_run.created_at.strftime("%B %d, %Y") %></span>
+      </div>
+
+      <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight"><%= @evaluation_run.name %></h1>
+
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-300 pt-2">
+        <span class="flex items-center gap-1">
+          <strong class="font-semibold text-white">Prompt:</strong> <%= @evaluation_run.prompt_version.prompt.name %> (V<%= @evaluation_run.prompt_version.version_number %>)
+        </span>
+        <span class="hidden sm:inline text-slate-600">|</span>
+        <span class="flex items-center gap-1">
+          <strong class="font-semibold text-white">Model:</strong> <%= @evaluation_run.llm_model %>
+        </span>
+        <span class="hidden sm:inline text-slate-600">|</span>
+        <span class="flex items-center gap-1">
+          <strong class="font-semibold text-white">Cases:</strong> <%= @evaluation_run.model_responses.count %> total
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-1 text-center sm:text-left">
+      <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Average Score</span>
+      <div class="text-4xl font-black text-indigo-600 dark:text-indigo-400"><%= @evaluation_run.average_score %>%</div>
+      <p class="text-[10px] text-slate-400">Weighted rubric average</p>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-1 text-center sm:text-left">
+      <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Pass Rate</span>
+      <div class="text-4xl font-black text-emerald-600 dark:text-emerald-400"><%= @evaluation_run.pass_rate %>%</div>
+      <p class="text-[10px] text-slate-400">Manual review approvals</p>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-1 text-center sm:text-left">
+      <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Reviewed Cases</span>
+      <div class="text-4xl font-black text-slate-900 dark:text-white"><%= @evaluation_run.reviewed_cases_count %> / <%= @evaluation_run.model_responses.count %></div>
+      <p class="text-[10px] text-slate-400">Completed manual reviews</p>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-1 text-center sm:text-left">
+      <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Failures</span>
+      <div class="text-4xl font-black text-rose-500"><%= @evaluation_run.failures_count %></div>
+      <p class="text-[10px] text-slate-400">Responses marked failed</p>
+    </div>
+  </div>
+
+  <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-4">
+    <h2 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Shared Scope</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+      <div class="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/30 p-4">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prompt Version</span>
+        <p class="mt-2 font-semibold text-slate-900 dark:text-white"><%= @evaluation_run.prompt_version.prompt.name %> (V<%= @evaluation_run.prompt_version.version_number %>)</p>
+      </div>
+      <div class="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/30 p-4">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Report Access</span>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">This page intentionally shares aggregate evaluation results only.</p>
+      </div>
+      <div class="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/30 p-4">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Private Internals</span>
+        <p class="mt-2 text-slate-600 dark:text-slate-300">Prompt text, test inputs, model outputs, and reviewer notes remain private.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-4">
+      <h2 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center gap-1.5">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-rose-500">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+        </svg>
+        Top Failed Criteria
+      </h2>
+
+      <% if @failed_criteria.any? %>
+        <div class="space-y-3">
+          <% @failed_criteria.each do |fc| %>
+            <div class="flex items-center justify-between p-3.5 bg-rose-50/30 dark:bg-rose-950/10 rounded-2xl border border-rose-100/30 dark:border-rose-900/30">
+              <div>
+                <span class="text-xs font-bold text-slate-800 dark:text-slate-200"><%= fc[:criterion].name %></span>
+                <p class="text-[10px] text-slate-400 mt-0.5"><%= fc[:criterion].description %></p>
+              </div>
+              <span class="text-xs font-bold text-rose-600 dark:text-rose-400 font-mono bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded">
+                <%= fc[:avg] %> / 5.0
+              </span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-xs text-slate-400 italic">No criteria average falls below the failure threshold (3.5 / 5.0).</p>
+      <% end %>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-4">
+      <h2 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Review Summary</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/30 p-4">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Failed Reviews</span>
+          <p class="mt-2 text-2xl font-extrabold text-rose-500"><%= @evaluation_run.failures_count %></p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Responses that reviewers marked as failed.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/30 p-4">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Pending Review</span>
+          <p class="mt-2 text-2xl font-extrabold text-amber-500"><%= @evaluation_run.model_responses.count - @evaluation_run.reviewed_cases_count %></p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Completed responses still awaiting reviewer action.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

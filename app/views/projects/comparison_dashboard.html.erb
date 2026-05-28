@@ -1,0 +1,120 @@
+<div class="space-y-8 w-full max-w-7xl mx-auto py-4">
+  <!-- Nav header -->
+  <div class="flex items-center justify-between gap-6 flex-wrap">
+    <div class="space-y-2">
+      <div class="flex items-center gap-2 text-xs text-slate-400">
+        <%= link_to "Projects", root_path, class: "hover:text-indigo-600 font-medium" %>
+        <span>/</span>
+        <%= link_to @project.name, project_path(@project), class: "hover:text-indigo-600 font-medium" %>
+        <span>/</span>
+        <span class="font-semibold text-slate-600 dark:text-slate-200">Comparison Dashboard</span>
+      </div>
+      <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Prompt Version Comparison</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        Compare metrics and version performance side-by-side to detect regression and improvements.
+      </p>
+    </div>
+
+    <!-- Active prompt selection selector -->
+    <% if @prompts.any? %>
+      <div class="flex items-center gap-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-2xl shadow-sm">
+        <label for="prompt_selector" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Compare Prompt:</label>
+        <%= form_with url: project_comparison_dashboard_path(@project), method: :get, local: true, class: "contents" do %>
+          <select id="prompt_selector" name="prompt_id" onchange="this.form.submit()" class="bg-transparent text-sm font-semibold text-indigo-600 dark:text-indigo-400 focus:outline-none cursor-pointer">
+            <% @prompts.each do |pr| %>
+              <option value="<%= pr.id %>" <%= 'selected' if @selected_prompt&.id == pr.id %>><%= pr.name %></option>
+            <% end %>
+          </select>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Comparison Matrix Table -->
+  <div class="space-y-4">
+    <% if @selected_prompt && @comparison_data.any? %>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+            <thead class="bg-slate-50 dark:bg-slate-900/60">
+              <tr>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Prompt Version</th>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Release Description</th>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Score</th>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Pass Rate</th>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Reviewed Cases</th>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Failures</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+              <% @comparison_data.each_with_index do |data, idx| %>
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition">
+                  <!-- Version badge -->
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                        V<%= data[:version].version_number %>
+                      </span>
+                      <% if idx == 0 %>
+                        <span class="inline-flex px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 shrink-0">Latest</span>
+                      <% end %>
+                    </div>
+                  </td>
+
+                  <!-- Notes -->
+                  <td class="px-6 py-4 max-w-xs text-xs text-slate-700 dark:text-slate-300 font-medium">
+                    <%= data[:version].description %>
+                  </td>
+
+                  <!-- Avg Score -->
+                  <td class="px-6 py-4">
+                    <div class="space-y-1 max-w-[120px]">
+                      <div class="text-sm font-extrabold text-indigo-600 dark:text-indigo-400"><%= data[:avg_score] %>%</div>
+                      <!-- Tiny visual progress bar -->
+                      <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-indigo-500 rounded-full" style="width: <%= data[:avg_score] %>%"></div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Pass Rate -->
+                  <td class="px-6 py-4">
+                    <div class="space-y-1 max-w-[120px]">
+                      <div class="text-sm font-extrabold text-emerald-600 dark:text-emerald-400"><%= data[:pass_rate] %>%</div>
+                      <!-- Tiny visual progress bar -->
+                      <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500 rounded-full" style="width: <%= data[:pass_rate] %>%"></div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <!-- Reviewed Cases -->
+                  <td class="px-6 py-4 text-xs font-bold text-slate-700 dark:text-slate-200">
+                    <%= data[:reviewed_cases] %>
+                  </td>
+
+                  <!-- Failures -->
+                  <td class="px-6 py-4 text-xs font-bold <%= data[:failures] > 0 ? 'text-rose-500 font-extrabold' : 'text-slate-400' %>">
+                    <%= data[:failures] %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-center py-16 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 p-8 shadow-inner">
+        <div class="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+          </svg>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No comparison data</h3>
+        <p class="text-slate-500 dark:text-slate-400 max-w-sm mx-auto text-sm">
+          Create multiple versions of your prompts and run evaluation runs for them to see side-by-side performance comparisons.
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>

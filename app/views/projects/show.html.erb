@@ -1,0 +1,357 @@
+<div class="space-y-8 w-full">
+  <!-- Project Info Header -->
+  <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 md:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div class="space-y-2 max-w-3xl">
+      <div class="flex items-center gap-2 text-xs text-slate-400">
+        <%= link_to "Projects", root_path, class: "hover:text-indigo-600 font-medium" %>
+        <span>/</span>
+        <span class="font-semibold text-slate-600 dark:text-slate-200"><%= @project.name %></span>
+      </div>
+      <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight"><%= @project.name %></h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+        <%= @project.description.presence || "Add a description to summarize this prompt evaluation suite." %>
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2 self-start md:self-center">
+      <%= link_to edit_project_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-slate-500">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.552 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.43l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+        Settings
+      <% end %>
+
+      <%= link_to new_project_evaluation_run_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transition cursor-pointer" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+        </svg>
+        New Run
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Dashboard Navigation Tabs -->
+  <% active_tab = params[:tab].presence || "prompts" %>
+  <div class="border-b border-slate-200 dark:border-slate-800">
+    <nav class="-mb-px flex space-x-8">
+      <%= link_to project_path(@project, tab: "prompts"), class: "border-b-2 py-4 px-1 text-sm font-semibold transition #{active_tab == 'prompts' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}" do %>
+        Prompts (<%= @prompts.count %>)
+      <% end %>
+
+      <%= link_to project_path(@project, tab: "test_cases"), class: "border-b-2 py-4 px-1 text-sm font-semibold transition #{active_tab == 'test_cases' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}" do %>
+        Test Cases (<%= @test_cases.count %>)
+      <% end %>
+
+      <%= link_to project_path(@project, tab: "rubrics"), class: "border-b-2 py-4 px-1 text-sm font-semibold transition #{active_tab == 'rubrics' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}" do %>
+        Rubrics (<%= @rubrics.count %>)
+      <% end %>
+
+      <%= link_to project_path(@project, tab: "evaluation_runs"), class: "border-b-2 py-4 px-1 text-sm font-semibold transition #{active_tab == 'evaluation_runs' ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}" do %>
+        Evaluation Runs (<%= @evaluation_runs.count %>)
+      <% end %>
+
+      <%= link_to project_comparison_dashboard_path(@project), class: "border-b-2 border-transparent py-4 px-1 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 flex items-center gap-1" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+        </svg>
+        Comparison Dashboard
+      <% end %>
+    </nav>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="mt-4">
+    <% case active_tab %>
+    <% when "prompts" %>
+      <!-- PROMPTS TAB -->
+      <div class="space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">Prompts</h2>
+            <p class="text-xs text-slate-400">Create prompts and iterate on version configurations</p>
+          </div>
+          <%= link_to new_project_prompt_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 dark:text-indigo-400 text-xs font-bold transition cursor-pointer border border-indigo-100/50 dark:border-indigo-900/30" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Prompt
+          <% end %>
+        </div>
+
+        <% if @prompts.any? %>
+          <div class="grid grid-cols-1 gap-4">
+            <% @prompts.each do |prompt| %>
+              <div class="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-slate-300 dark:hover:border-slate-700 transition">
+                <div class="space-y-1.5 flex-grow">
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white"><%= prompt.name %></h3>
+                    <% if prompt.latest_version.present? %>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold">
+                        V<%= prompt.latest_version.version_number %>
+                      </span>
+                    <% else %>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                        Draft
+                      </span>
+                    <% end %>
+                  </div>
+                  <p class="text-xs text-slate-400 line-clamp-1"><%= prompt.description.presence || "No description provided." %></p>
+                  <% if prompt.latest_version.present? %>
+                    <div class="mt-2 text-xs bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-xl p-3 max-w-2xl font-mono text-slate-500 dark:text-slate-400 line-clamp-2">
+                      <span class="font-bold text-slate-700 dark:text-slate-200">System:</span> <%= prompt.latest_version.system_prompt %>
+                    </div>
+                  <% end %>
+                </div>
+
+                <div class="flex items-center gap-2 self-end md:self-center">
+                  <%= link_to "View History & Edit", project_prompt_path(@project, prompt), class: "px-3.5 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl border border-slate-200/50 dark:border-slate-700/50 text-xs font-semibold transition" %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center py-12 bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white mb-1">No prompts yet</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mb-4">Add your first LLM prompt targeting evaluation benchmarks.</p>
+            <%= link_to "Create Prompt", new_project_prompt_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition" %>
+          </div>
+        <% end %>
+      </div>
+
+    <% when "test_cases" %>
+      <!-- TEST CASES TAB -->
+      <div class="space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">Test Cases</h2>
+            <p class="text-xs text-slate-400">Configure datasets and target evaluations</p>
+          </div>
+          <%= link_to new_project_test_case_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 dark:text-indigo-400 text-xs font-bold transition cursor-pointer border border-indigo-100/50 dark:border-indigo-900/30" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Test Case
+          <% end %>
+        </div>
+
+        <% if @test_cases.any? %>
+          <div class="overflow-hidden border border-slate-200/60 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-900 shadow-sm">
+            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+              <thead class="bg-slate-50 dark:bg-slate-900/60">
+                <tr>
+                  <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Input variables</th>
+                  <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Expected behavior</th>
+                  <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Difficulty</th>
+                  <th scope="col" class="px-6 py-3.5 class text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Tags</th>
+                  <th scope="col" class="relative px-6 py-3.5"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                <% @test_cases.each do |tc| %>
+                  <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition">
+                    <td class="px-6 py-4">
+                      <div class="space-y-1">
+                        <% tc.input_variables.each do |key, value| %>
+                          <div class="text-xs">
+                            <span class="font-mono bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded font-bold"><%= key %></span>:
+                            <span class="text-slate-500 dark:text-slate-400 truncate max-w-[200px] inline-block align-middle"><%= value %></span>
+                          </div>
+                        <% end %>
+                        <% if tc.input_variables.blank? %>
+                          <span class="text-xs text-slate-400 font-light italic">No inputs defined</span>
+                        <% end %>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-xs text-slate-600 dark:text-slate-300 max-w-xs">
+                      <p class="line-clamp-2"><%= tc.expected_behavior %></p>
+                    </td>
+                    <td class="px-6 py-4 text-xs">
+                      <% case tc.difficulty %>
+                      <% when "low" %>
+                        <span class="inline-flex px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 font-semibold font-mono text-[10px]">low</span>
+                      <% when "medium" %>
+                        <span class="inline-flex px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 font-semibold font-mono text-[10px]">medium</span>
+                      <% when "high" %>
+                        <span class="inline-flex px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 font-semibold font-mono text-[10px]">high</span>
+                      <% end %>
+                    </td>
+                    <td class="px-6 py-4">
+                      <div class="flex flex-wrap gap-1">
+                        <% tc.tags_array.each do |tag| %>
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/50">
+                            <%= tag %>
+                          </span>
+                        <% end %>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 text-right text-xs font-medium">
+                      <%= link_to "Edit", edit_project_test_case_path(@project, tc), class: "text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-bold" %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="text-center py-12 bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white mb-1">No test cases yet</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mb-4">Create some test datasets to see how prompt versions respond.</p>
+            <%= link_to "Create Test Case", new_project_test_case_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition" %>
+          </div>
+        <% end %>
+      </div>
+
+    <% when "rubrics" %>
+      <!-- RUBRICS TAB -->
+      <div class="space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">Rubrics</h2>
+            <p class="text-xs text-slate-400">Establish criteria standards for prompt outputs</p>
+          </div>
+          <%= link_to new_project_rubric_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 dark:text-indigo-400 text-xs font-bold transition cursor-pointer border border-indigo-100/50 dark:border-indigo-900/30" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Rubric
+          <% end %>
+        </div>
+
+        <% if @rubrics.any? %>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <% @rubrics.each do |rubric| %>
+              <div class="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-6 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col justify-between">
+                <div class="space-y-4">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <h3 class="text-lg font-bold text-slate-900 dark:text-white"><%= rubric.name %></h3>
+                      <p class="text-xs text-slate-400"><%= rubric.description.presence || "No description provided." %></p>
+                    </div>
+                    <%= link_to "Edit", edit_project_rubric_path(@project, rubric), class: "text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-bold text-xs" %>
+                  </div>
+
+                  <!-- Criteria List -->
+                  <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Criteria</span>
+                    <% if rubric.rubric_criteria.any? %>
+                      <div class="space-y-2">
+                        <% rubric.rubric_criteria.each do |crit| %>
+                          <div class="flex items-start justify-between text-xs gap-4">
+                            <div>
+                              <span class="font-semibold text-slate-700 dark:text-slate-200"><%= crit.name %></span>
+                              <p class="text-[11px] text-slate-400 leading-tight"><%= crit.description %></p>
+                            </div>
+                            <span class="font-bold font-mono text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full shrink-0">
+                              Weight <%= crit.weight %>
+                            </span>
+                          </div>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <p class="text-xs text-slate-400 italic font-light">No criteria defined. Click Edit to add some!</p>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center py-12 bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white mb-1">No rubrics yet</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mb-4">Establish rubrics with criteria to rate prompt responses.</p>
+            <%= link_to "Create Rubric", new_project_rubric_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition" %>
+          </div>
+        <% end %>
+      </div>
+
+    <% when "evaluation_runs" %>
+      <!-- EVALUATION RUNS TAB -->
+      <div class="space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">Evaluation Runs</h2>
+            <p class="text-xs text-slate-400">Launch and track test runs and metrics</p>
+          </div>
+          <%= link_to new_project_evaluation_run_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 dark:text-indigo-400 text-xs font-bold transition cursor-pointer border border-indigo-100/50 dark:border-indigo-900/30" do %>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Start Run
+          <% end %>
+        </div>
+
+        <% if @evaluation_runs.any? %>
+          <div class="grid grid-cols-1 gap-4">
+            <% @evaluation_runs.each do |run| %>
+              <div class="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-5 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div class="space-y-1.5 flex-grow">
+                  <div class="flex items-center gap-2.5">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white"><%= run.name %></h3>
+                    <!-- Status Badge -->
+                    <% case run.status %>
+                    <% when "completed" %>
+                      <span class="inline-flex px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">completed</span>
+                    <% when "running" %>
+                      <span class="inline-flex px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold animate-pulse">running</span>
+                    <% when "pending" %>
+                      <span class="inline-flex px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold">pending</span>
+                    <% else %>
+                      <span class="inline-flex px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-[10px] font-bold">failed</span>
+                    <% end %>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+                    <span class="flex items-center gap-1">
+                      <strong class="font-semibold text-slate-600 dark:text-slate-300">Prompt:</strong>
+                      <%= run.prompt_version.prompt.name %> (V<%= run.prompt_version.version_number %>)
+                    </span>
+                    <span>•</span>
+                    <span class="flex items-center gap-1">
+                      <strong class="font-semibold text-slate-600 dark:text-slate-300">Model:</strong>
+                      <%= run.llm_model %>
+                    </span>
+                    <span>•</span>
+                    <span><%= run.created_at.strftime("%b %d, %Y %H:%M") %></span>
+                  </div>
+
+                  <!-- Mini Metric Row -->
+                  <% if run.status == "completed" || run.model_responses.joins(:review).any? %>
+                    <div class="flex items-center gap-6 pt-3">
+                      <div class="space-y-0.5">
+                        <span class="text-[10px] font-bold uppercase text-slate-400">Avg Score</span>
+                        <div class="text-sm font-extrabold text-indigo-600 dark:text-indigo-400"><%= run.average_score %>%</div>
+                      </div>
+                      <div class="space-y-0.5">
+                        <span class="text-[10px] font-bold uppercase text-slate-400">Pass Rate</span>
+                        <div class="text-sm font-extrabold text-emerald-600 dark:text-emerald-400"><%= run.pass_rate %>%</div>
+                      </div>
+                      <div class="space-y-0.5">
+                        <span class="text-[10px] font-bold uppercase text-slate-400">Cases</span>
+                        <div class="text-sm font-bold text-slate-700 dark:text-slate-200"><%= run.reviewed_cases_count %> / <%= run.model_responses.count %></div>
+                      </div>
+                      <div class="space-y-0.5">
+                        <span class="text-[10px] font-bold uppercase text-slate-400">Failures</span>
+                        <div class="text-sm font-bold text-rose-500"><%= run.failures_count %></div>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+
+                <div class="flex items-center gap-2 self-end md:self-center">
+                  <%= link_to "View Details", project_evaluation_run_path(@project, run), class: "px-3.5 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl border border-slate-200/50 dark:border-slate-700/50 text-xs font-semibold transition" %>
+                  <%= link_to "Public Summary", public_evaluation_run_report_path(run), class: "px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-semibold transition" %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center py-12 bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white mb-1">No evaluation runs yet</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mb-4">Set up a prompt version and some test cases, then run your first evaluation session.</p>
+            <%= link_to "Start Run", new_project_evaluation_run_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

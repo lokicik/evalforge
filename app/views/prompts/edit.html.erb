@@ -1,0 +1,94 @@
+<div class="max-w-3xl mx-auto py-8">
+  <div class="bg-white dark:bg-slate-900 shadow-2xl rounded-2xl border border-slate-100 dark:border-slate-800 p-8 relative overflow-hidden">
+    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Edit Prompt Workspace</h2>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Modifying the template content creates a new version, preserving execution history.
+        </p>
+      </div>
+      <%= link_to "Back", project_prompt_path(@project, @prompt), class: "text-xs font-semibold text-slate-400 hover:text-slate-600" %>
+    </div>
+
+    <!-- Alert explaining versioning behavior -->
+    <div class="mb-6 p-4 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900 rounded-xl text-indigo-700 dark:text-indigo-400 text-xs flex items-start gap-2.5">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5 shrink-0 text-indigo-500">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+      </svg>
+      <div>
+        <strong class="font-bold">Prompt-Ops Versioning Policy:</strong>
+        <p class="mt-0.5 font-light leading-relaxed">
+          If you only edit the prompt name or description, we will update the general metadata. If you edit the <strong>System Prompt</strong> or <strong>User Prompt Template</strong>, a new version (V<%= (@prompt.latest_version&.version_number || 0) + 1 %>) will automatically be spawned.
+        </p>
+      </div>
+    </div>
+
+    <%= form_with model: [@project, @prompt], local: true, class: "space-y-6" do |f| %>
+      <% if @prompt.errors.any? || (@prompt_version && @prompt_version.errors.any?) %>
+        <div class="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 rounded-xl text-rose-600 dark:text-rose-400 text-sm">
+          <p class="font-semibold mb-1">Please fix the following errors:</p>
+          <ul class="list-disc pl-4 space-y-1">
+            <% @prompt.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+            <% if @prompt_version %>
+              <% @prompt_version.errors.full_messages.each do |msg| %>
+                <li>Version: <%= msg %></li>
+              <% end %>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <!-- Prompt Metadata -->
+      <div class="space-y-4">
+        <h3 class="text-sm font-bold uppercase text-slate-400 tracking-wider">Prompt General Information</h3>
+        
+        <div>
+          <%= f.label :name, "Prompt Name", class: "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1" %>
+          <%= f.text_field :name, required: true, placeholder: "e.g. Empathy Judge", 
+              class: "block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" %>
+        </div>
+
+        <div>
+          <%= f.label :description, "Prompt Description", class: "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1" %>
+          <%= f.text_area :description, rows: 2, placeholder: "What is this prompt's target objective?", 
+              class: "block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" %>
+        </div>
+      </div>
+
+      <!-- V1 Prompt Configuration -->
+      <div class="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+        <h3 class="text-sm font-bold uppercase text-slate-400 tracking-wider">Template Configuration</h3>
+
+        <div>
+          <label for="system_prompt" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">System Prompt</label>
+          <textarea id="system_prompt" name="system_prompt" rows="5" required placeholder="You are an expert evaluator. Your task is to..." 
+              class="block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 font-mono text-xs"><%= params[:system_prompt].presence || @prompt_version&.system_prompt %></textarea>
+        </div>
+
+        <div>
+          <label for="user_prompt_template" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">User Prompt Template</label>
+          <p class="text-xs text-slate-400 mb-2">Use curly braces to define variable slots. Example: <code>Here is the conversation: {{user_input}}</code></p>
+          <textarea id="user_prompt_template" name="user_prompt_template" rows="5" required placeholder="Analyze this context: {{user_input}} and respond appropriately." 
+              class="block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 font-mono text-xs"><%= params[:user_prompt_template].presence || @prompt_version&.user_prompt_template %></textarea>
+        </div>
+
+        <div>
+          <label for="version_description" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Version Release Notes / Commit Message</label>
+          <input type="text" id="version_description" name="version_description" placeholder="e.g. Added stricter empathetic tone constraint" value="<%= params[:version_description] %>"
+              class="block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+        <%= f.submit "Save & Version", 
+            class: "py-3 px-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg hover:shadow-indigo-500/25 transition duration-200 cursor-pointer text-sm" %>
+        <%= link_to "Cancel", project_prompt_path(@project, @prompt), 
+            class: "py-3 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-xl font-semibold transition text-sm cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+</div>

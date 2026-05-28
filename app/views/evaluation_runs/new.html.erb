@@ -1,0 +1,112 @@
+<div class="max-w-4xl mx-auto py-8">
+  <div class="bg-white dark:bg-slate-900 shadow-2xl rounded-2xl border border-slate-100 dark:border-slate-800 p-8 relative overflow-hidden">
+    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Launch Evaluation Run</h2>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Combine a prompt version with test cases to benchmark model outputs.
+        </p>
+      </div>
+      <%= link_to "Back", project_path(@project, tab: "evaluation_runs"), class: "text-xs font-semibold text-slate-400 hover:text-slate-600" %>
+    </div>
+
+    <%= form_with model: [@project, @evaluation_run], local: true, class: "space-y-8" do |f| %>
+      <% if @evaluation_run.errors.any? %>
+        <div class="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 rounded-xl text-rose-600 dark:text-rose-400 text-sm">
+          <p class="font-semibold mb-1">Please fix the following errors:</p>
+          <ul class="list-disc pl-4 space-y-1">
+            <% @evaluation_run.errors.full_messages.each do |msg| %>
+              <li><%= msg %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <!-- General Run Settings -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2">
+          <%= f.label :name, "Evaluation Run Name", class: "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1" %>
+          <%= f.text_field :name, required: true, value: "Eval Session - #{Time.current.strftime('%b %d, %H:%M')}", 
+              class: "block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" %>
+        </div>
+
+        <div>
+          <%= f.label :llm_model, "Model / Provider", class: "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1" %>
+          <%= f.select :llm_model, [
+              ["Manual Grading", "manual"],
+              ["Simulated GPT-4o", "gpt-4o"],
+              ["Simulated Claude 3.5 Sonnet", "claude-3-5-sonnet"]
+            ], {}, 
+            class: "block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" %>
+        </div>
+      </div>
+
+      <!-- Prompt Version Selection -->
+      <div class="space-y-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Select Prompt Version</label>
+        <% if @prompt_versions.any? %>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <% @prompt_versions.each_with_index do |pv, idx| %>
+              <label class="group relative flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 hover:border-indigo-300 dark:hover:border-indigo-900 transition cursor-pointer">
+                <input type="radio" name="evaluation_run[prompt_version_id]" value="<%= pv.id %>" <%= 'checked' if idx == 0 %> required class="mt-1 text-indigo-600 focus:ring-indigo-500 shrink-0" />
+                <div class="space-y-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200"><%= pv.prompt.name %></span>
+                    <span class="inline-flex px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/40 text-[9px] font-bold text-indigo-600 dark:text-indigo-400">V<%= pv.version_number %></span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 font-light truncate max-w-[250px]"><%= pv.description %></p>
+                </div>
+              </label>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 rounded-xl text-amber-600 dark:text-amber-400 text-xs">
+            No active prompt versions found. Please <%= link_to "create a prompt first", new_project_prompt_path(@project), class: "underline font-bold" %> before running evaluations.
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Test Cases Selection -->
+      <div class="space-y-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+        <div class="flex items-center justify-between">
+          <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">Select Test Cases</label>
+          <button type="button" onclick="document.querySelectorAll('.tc-chk').forEach(c => c.checked = true)" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 cursor-pointer">
+            Select All
+          </button>
+        </div>
+
+        <% if @test_cases.any? %>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto pr-2">
+            <% @test_cases.each do |tc| %>
+              <label class="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 hover:border-indigo-300 dark:hover:border-indigo-900 transition cursor-pointer">
+                <input type="checkbox" name="test_case_ids[]" value="<%= tc.id %>" checked class="mt-1 tc-chk text-indigo-600 focus:ring-indigo-500 shrink-0" />
+                <div class="space-y-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <% tc.input_variables.each do |k, v| %>
+                      <span class="font-mono text-[9px] bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-1 rounded"><%= k %>: <%= v %></span>
+                    <% end %>
+                  </div>
+                  <p class="text-[11px] text-slate-400 line-clamp-1 italic"><%= tc.expected_behavior %></p>
+                </div>
+              </label>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900 rounded-xl text-amber-600 dark:text-amber-400 text-xs">
+            No test cases found. Please <%= link_to "add some test cases", new_project_test_case_path(@project), class: "underline font-bold" %> before launching runs.
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+        <%= f.submit "Launch Evaluation", 
+            class: "py-3 px-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg hover:shadow-indigo-500/25 transition duration-200 cursor-pointer text-sm" %>
+        <%= link_to "Cancel", project_path(@project, tab: "evaluation_runs"), 
+            class: "py-3 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-xl font-semibold transition text-sm cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+</div>

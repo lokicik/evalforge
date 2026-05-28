@@ -1,0 +1,31 @@
+<%= form_with model: project, local: true, class: "space-y-6" do |f| %>
+  <% if project.errors.any? %>
+    <div class="p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 rounded-xl text-rose-600 dark:text-rose-400 text-sm">
+      <p class="font-semibold mb-1">Please fix the following errors:</p>
+      <ul class="list-disc pl-4 space-y-1">
+        <% project.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :name, "Project Name", class: "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1" %>
+    <%= f.text_field :name, required: true, placeholder: "e.g., Customer Support Bot, Job Matcher", 
+        class: "block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" %>
+  </div>
+
+  <div>
+    <%= f.label :description, "Description", class: "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1" %>
+    <%= f.text_area :description, rows: 4, placeholder: "Describe what this prompt suite evaluates...", 
+        class: "block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" %>
+  </div>
+
+  <div class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+    <%= f.submit project.new_record? ? "Create Project" : "Save Changes", 
+        class: "py-3 px-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg hover:shadow-indigo-500/25 transition duration-200 cursor-pointer text-sm" %>
+    <%= link_to "Cancel", project.new_record? ? projects_path : project_path(project), 
+        class: "py-3 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-xl font-semibold transition text-sm cursor-pointer" %>
+  </div>
+<% end %>

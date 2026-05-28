@@ -1,0 +1,182 @@
+<%= turbo_frame_tag "evaluation_run_#{@evaluation_run.id}", class: "contents" do %>
+  <div class="space-y-8 w-full max-w-7xl mx-auto py-4">
+    <!-- Nav header -->
+    <div class="flex items-center justify-between gap-6 flex-wrap">
+      <div class="space-y-2">
+        <div class="flex items-center gap-2 text-xs text-slate-400">
+          <%= link_to "Projects", root_path, class: "hover:text-indigo-600 font-medium", target: "_top" %>
+          <span>/</span>
+          <%= link_to @project.name, project_path(@project, tab: "evaluation_runs"), class: "hover:text-indigo-600 font-medium", target: "_top" %>
+          <span>/</span>
+          <span class="font-semibold text-slate-600 dark:text-slate-200"><%= @evaluation_run.name %></span>
+        </div>
+        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight"><%= @evaluation_run.name %></h1>
+        <p class="text-xs text-slate-400">
+          Prompt version: <strong class="font-semibold text-slate-700 dark:text-slate-200"><%= @evaluation_run.prompt_version.prompt.name %> (V<%= @evaluation_run.prompt_version.version_number %>)</strong> • 
+          Model: <strong class="font-semibold text-slate-700 dark:text-slate-200"><%= @evaluation_run.model_name %></strong> • 
+          Launched <%= @evaluation_run.created_at.strftime("%b %d, %H:%M") %>
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <%= link_to public_evaluation_run_report_path(@evaluation_run), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer", target: "_top" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
+          </svg>
+          Share Public Summary
+        <% end %>
+
+        <%= button_to project_evaluation_run_path(@project, @evaluation_run), method: :delete, data: { confirm: "Are you sure?" }, 
+            class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-xs font-bold text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900 cursor-pointer" do %>
+          Delete Run
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Overall metrics row -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-5 shadow-sm space-y-1">
+        <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Average Score</span>
+        <div class="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400"><%= @evaluation_run.average_score %>%</div>
+        <p class="text-[10px] text-slate-400">Weighted criteria average</p>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-5 shadow-sm space-y-1">
+        <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Pass Rate</span>
+        <div class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400"><%= @evaluation_run.pass_rate %>%</div>
+        <p class="text-[10px] text-slate-400">Manual review approvals</p>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-5 shadow-sm space-y-1">
+        <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Reviewed Cases</span>
+        <div class="text-3xl font-extrabold text-slate-900 dark:text-white"><%= @evaluation_run.reviewed_cases_count %> / <%= @evaluation_run.model_responses.count %></div>
+        <p class="text-[10px] text-slate-400">Completed manual reviews</p>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-5 shadow-sm space-y-1">
+        <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Total Failures</span>
+        <div class="text-3xl font-extrabold text-rose-500"><%= @evaluation_run.failures_count %></div>
+        <p class="text-[10px] text-slate-400">Responses marked failed</p>
+      </div>
+    </div>
+
+    <!-- Detailed Model Responses Table -->
+    <div class="space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 pb-3">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white">Run Outputs & Grading</h2>
+          <p class="text-xs text-slate-400">Detailed test case executions and qualitative scoring</p>
+        </div>
+        <%= link_to export_csv_project_evaluation_run_path(@project, @evaluation_run), class: "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400 transition", target: "_top" do %>
+          Export CSV
+        <% end %>
+      </div>
+
+      <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+            <thead class="bg-slate-50 dark:bg-slate-900/60">
+              <tr>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Test Case Input</th>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Model Output</th>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Review Status</th>
+                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Score</th>
+                <th scope="col" class="relative px-6 py-3.5"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+              <% @model_responses.each do |resp| %>
+                <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition">
+                  <td class="px-6 py-4 max-w-xs">
+                    <div class="space-y-1 text-xs">
+                      <% resp.test_case.input_variables.each do |k, v| %>
+                        <div>
+                          <span class="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded text-[10px]"><%= k %></span>:
+                          <span class="text-slate-500 dark:text-slate-400 truncate max-w-[150px] inline-block align-middle"><%= v %></span>
+                        </div>
+                      <% end %>
+                      <p class="text-[10px] text-slate-400 truncate mt-1">Expected: <%= resp.test_case.expected_behavior %></p>
+                    </div>
+                  </td>
+
+                  <td class="px-6 py-4 max-w-sm">
+                    <% if resp.status == "pending" %>
+                      <div class="flex items-center gap-2 text-slate-400 text-xs italic font-light font-mono">
+                        <svg class="animate-spin h-3.5 w-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Generating response...
+                      </div>
+                    <% elsif resp.status == "failed" %>
+                      <div class="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 p-2.5 rounded-xl text-xs font-mono text-rose-600 dark:text-rose-400">
+                        LLM execution failed.
+                      </div>
+                    <% else %>
+                      <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-2.5 rounded-xl text-xs font-mono text-slate-600 dark:text-slate-300 line-clamp-2">
+                        <%= resp.raw_response %>
+                      </div>
+                    <% end %>
+                  </td>
+
+                  <td class="px-6 py-4 text-xs font-semibold">
+                    <% if resp.status == "pending" %>
+                      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold animate-pulse">
+                        Running Job...
+                      </span>
+                    <% elsif resp.status == "failed" %>
+                      <span class="inline-flex px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400">
+                        Job Failed
+                      </span>
+                    <% elsif resp.reviewed? %>
+                      <% if resp.review.status == "passed" %>
+                        <span class="inline-flex px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">Passed</span>
+                      <% else %>
+                        <span class="inline-flex px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400">Failed</span>
+                      <% end %>
+                    <% else %>
+                      <span class="inline-flex px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400">Pending Review</span>
+                    <% end %>
+                  </td>
+
+                  <td class="px-6 py-4 text-xs font-extrabold">
+                    <% if resp.status == "completed" && resp.reviewed? %>
+                      <span class="text-indigo-600 dark:text-indigo-400"><%= resp.average_score_percentage %>%</span>
+                      <span class="text-[10px] text-slate-400 font-light block mt-0.5">(<%= resp.average_score %> / 5.0)</span>
+                    <% else %>
+                      <span class="text-slate-400 font-light">—</span>
+                    <% end %>
+                  </td>
+
+                  <td class="px-6 py-4 text-right text-xs font-medium shrink-0">
+                    <% if resp.status == "pending" %>
+                      <span class="text-slate-400 italic">Waiting...</span>
+                    <% elsif resp.status == "failed" %>
+                      <span class="text-rose-500 italic">Error</span>
+                    <% elsif resp.reviewed? %>
+                      <span class="text-slate-400 italic">Graded</span>
+                    <% else %>
+                      <%= link_to "Grade", new_project_model_response_review_path(@project, resp), class: "text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-bold", target: "_top" %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if @evaluation_run.status == "running" %>
+    <script>
+      setTimeout(() => {
+        const frame = document.getElementById("evaluation_run_<%= @evaluation_run.id %>");
+        if (frame) {
+          frame.src = "<%= project_evaluation_run_path(@project, @evaluation_run) %>";
+          frame.reload();
+        }
+      }, 1500);
+    </script>
+  <% end %>
+<% end %>

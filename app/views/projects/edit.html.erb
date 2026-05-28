@@ -1,0 +1,20 @@
+<div class="max-w-xl mx-auto py-8">
+  <div class="bg-white dark:bg-slate-900 shadow-2xl rounded-2xl border border-slate-100 dark:border-slate-800 p-8 relative overflow-hidden">
+    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+
+    <div class="mb-8 flex items-center justify-between">
+      <div>
+        <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Edit project</h2>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Update the metadata for this evaluation workspace.
+        </p>
+      </div>
+      <%= button_to @project, method: :delete, data: { confirm: "Are you sure?" }, 
+          class: "px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 dark:text-rose-400 text-xs font-semibold rounded-lg border border-rose-100 dark:border-rose-900 cursor-pointer" do %>
+        Delete Project
+      <% end %>
+    </div>
+
+    <%= render "form", project: @project %>
+  </div>
+</div>
