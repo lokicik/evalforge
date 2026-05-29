@@ -13,7 +13,7 @@
         <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight"><%= @evaluation_run.name %></h1>
         <p class="text-xs text-slate-400">
           Prompt version: <strong class="font-semibold text-slate-700 dark:text-slate-200"><%= @evaluation_run.prompt_version.prompt.name %> (V<%= @evaluation_run.prompt_version.version_number %>)</strong> • 
-          Model: <strong class="font-semibold text-slate-700 dark:text-slate-200"><%= @evaluation_run.model_name %></strong> • 
+          Model: <strong class="font-semibold text-slate-700 dark:text-slate-200"><%= @evaluation_run.llm_model %></strong> • 
           Launched <%= @evaluation_run.created_at.strftime("%b %d, %H:%M") %>
         </p>
       </div>

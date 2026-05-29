@@ -6,6 +6,7 @@ class EvaluationRun < ApplicationRecord
 
   validates :name, presence: true
   validates :status, inclusion: { in: %w[pending running completed failed] }
+  validates :llm_model, inclusion: { in: LlmProviderService.supported_model_keys }
   validate :prompt_version_belongs_to_project
 
   def to_param

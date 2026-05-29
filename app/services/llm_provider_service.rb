@@ -1,36 +1,63 @@
 require "net/http"
 require "json"
-require "bigdecimal"
 
 class LlmProviderService
+  MODEL_CATALOG = {
+    "manual" => {
+      label: "Manual Grading",
+      openrouter_model: nil
+    },
+    "gpt-4o" => {
+      label: "GPT-4o via OpenRouter",
+      openrouter_model: "openai/gpt-4o"
+    },
+    "claude-3-5-sonnet" => {
+      label: "Claude 3.5 Sonnet via OpenRouter",
+      openrouter_model: "anthropic/claude-3.5-sonnet"
+    }
+  }.freeze
+
+  OPENROUTER_URI = URI("https://openrouter.ai/api/v1/chat/completions")
+
   def self.call(system_prompt:, user_prompt:, model_name:)
-    # Choose provider
-    if model_name.include?("gpt")
-      call_openai(system_prompt, user_prompt, model_name)
-    elsif model_name.include?("claude")
-      call_anthropic(system_prompt, user_prompt, model_name)
-    else
-      call_mock(system_prompt, user_prompt, model_name)
-    end
+    return call_mock(system_prompt, user_prompt, model_name) if model_name == "manual"
+
+    call_openrouter(system_prompt, user_prompt, model_name)
+  end
+
+  def self.supported_model_keys
+    MODEL_CATALOG.keys
+  end
+
+  def self.options_for_select
+    MODEL_CATALOG.map { |key, config| [ config[:label], key ] }
+  end
+
+  def self.openrouter_model_for(model_name)
+    MODEL_CATALOG.dig(model_name, :openrouter_model)
   end
 
   private
 
-  def self.call_openai(system_prompt, user_prompt, model_name)
-    api_key = ENV["OPENAI_API_KEY"]
+  def self.call_openrouter(system_prompt, user_prompt, model_name)
+    api_key = ENV["OPENROUTER_API_KEY"]
+    openrouter_model = openrouter_model_for(model_name)
+
+    unless openrouter_model
+      raise ArgumentError, "Unsupported model selection: #{model_name.inspect}"
+    end
+
     if api_key.blank?
-      Rails.logger.warn "OPENAI_API_KEY is blank. Falling back to mocked GPT response."
+      Rails.logger.warn "OPENROUTER_API_KEY is blank. Falling back to a mocked response for #{model_name}."
       return call_mock(system_prompt, user_prompt, model_name)
     end
 
-    # Real OpenAI call using Net::HTTP to keep dependencies zero/minimal and highly secure!
-    uri = URI("https://api.openai.com/v1/chat/completions")
-    req = Net::HTTP::Post.new(uri)
+    req = Net::HTTP::Post.new(OPENROUTER_URI)
     req["Content-Type"] = "application/json"
     req["Authorization"] = "Bearer #{api_key}"
-    
+
     req.body = {
-      model: model_name,
+      model: openrouter_model,
       messages: [
         { role: "system", content: system_prompt },
         { role: "user", content: user_prompt }
@@ -38,55 +65,17 @@ class LlmProviderService
       temperature: 0.7
     }.to_json
 
-    res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
+    res = Net::HTTP.start(OPENROUTER_URI.hostname, OPENROUTER_URI.port, use_ssl: true) { |http| http.request(req) }
+    data = JSON.parse(res.body)
 
     if res.code == "200"
-      data = JSON.parse(res.body)
       {
         content: data.dig("choices", 0, "message", "content"),
         tokens_used: data.dig("usage", "total_tokens"),
-        cost: calculate_cost(model_name, data.dig("usage", "prompt_tokens"), data.dig("usage", "completion_tokens"))
+        cost: nil
       }
     else
-      raise "OpenAI API call failed with status #{res.code}: #{res.body}"
-    end
-  end
-
-  def self.call_anthropic(system_prompt, user_prompt, model_name)
-    api_key = ENV["ANTHROPIC_API_KEY"]
-    if api_key.blank?
-      Rails.logger.warn "ANTHROPIC_API_KEY is blank. Falling back to mocked Claude response."
-      return call_mock(system_prompt, user_prompt, model_name)
-    end
-
-    # Real Anthropic call using Net::HTTP
-    uri = URI("https://api.openai.com/v1/chat/completions") # or actual Anthropic API. Using standard Anthropic REST API:
-    uri = URI("https://api.anthropic.com/v1/messages")
-    req = Net::HTTP::Post.new(uri)
-    req["Content-Type"] = "application/json"
-    req["x-api-key"] = api_key
-    req["anthropic-version"] = "2023-06-01"
-
-    req.body = {
-      model: model_name == "claude-3-5-sonnet" ? "claude-3-5-sonnet-20241022" : model_name,
-      system: system_prompt,
-      messages: [
-        { role: "user", content: user_prompt }
-      ],
-      max_tokens: 1024
-    }.to_json
-
-    res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
-
-    if res.code == "200"
-      data = JSON.parse(res.body)
-      {
-        content: data.dig("content", 0, "text"),
-        tokens_used: data.dig("usage", "input_tokens").to_i + data.dig("usage", "output_tokens").to_i,
-        cost: calculate_cost(model_name, data.dig("usage", "input_tokens"), data.dig("usage", "output_tokens"))
-      }
-    else
-      raise "Anthropic API call failed with status #{res.code}: #{res.body}"
+      raise "OpenRouter API call failed with status #{res.code}: #{data}"
     end
   end
 
@@ -114,23 +103,7 @@ class LlmProviderService
     {
       content: content,
       tokens_used: prompt_tokens + completion_tokens,
-      cost: calculate_cost(model_name, prompt_tokens, completion_tokens)
+      cost: nil
     }
-  end
-
-  def self.calculate_cost(model_name, prompt_tokens, completion_tokens)
-    # Standard pricing in USD per 1M tokens
-    case model_name
-    when "gpt-4o"
-      prompt_cost = (prompt_tokens.to_f / 1_000_000) * 5.0
-      comp_cost = (completion_tokens.to_f / 1_000_000) * 15.0
-    when "claude-3-5-sonnet"
-      prompt_cost = (prompt_tokens.to_f / 1_000_000) * 3.0
-      comp_cost = (completion_tokens.to_f / 1_000_000) * 15.0
-    else
-      prompt_cost = (prompt_tokens.to_f / 1_000_000) * 0.1
-      comp_cost = (completion_tokens.to_f / 1_000_000) * 0.2
-    end
-    BigDecimal(prompt_cost + comp_cost, 8)
   end
 end

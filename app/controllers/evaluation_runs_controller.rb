@@ -171,27 +171,12 @@ class EvaluationRunsController < ApplicationController
 
   def generate_mock_response(prompt_version, test_case, model_name)
     user_prompt = prompt_version.interpolate(test_case.input_variables)
-    
-    case model_name
-    when "manual"
-      "[Manual Evaluation Response]\n\n" \
-      "Inputs: #{test_case.input_variables.to_json}\n" \
-      "Expected standard: #{test_case.expected_behavior}\n\n" \
-      "Draft your qualitative response details or use the standard template below:\n" \
-      "\"Based on your conversation, I understand you are feeling ignored by your friend. It is completely natural to feel hurt when someone we care about seems distant...\""
-    when "gpt-4o"
-      "[GPT-4o Simulated Response]\n\n" \
-      "I understand how deeply painful it is to feel ignored by a friend. Relationships are core to our emotional well-being, and silence can often feel like rejection. " \
-      "Instead of jumping to dramatic conclusions or sending an angry text, I recommend sharing how you feel calmly when you both have space to connect. " \
-      "Remember that their silence might be about their own struggles, not your worth."
-    when "claude-3-5-sonnet"
-      "[Claude-3.5-Sonnet Simulated Response]\n\n" \
-      "It is incredibly tough when a friend seems to shut you out or ignore you. Your feelings of hurt and confusion are completely valid. " \
-      "Sometimes friends pull back due to personal stress, busyness, or anxiety, rather than active hostility. " \
-      "I'd suggest giving them a little breathing room, then reaching out with a simple, low-pressure check-in. Avoid overreacting or jumping to negative assumptions."
-    else
-      "[Simulated #{model_name} Response]\n\n" \
-      "Thank you for reaching out. Based on your prompt configurations and test case variable constraints, here is a comforting and empathetic response designed to validate your emotional experience, without prescribing overly dramatic advice or stepping over personal boundaries."
-    end
+
+    "[Manual Evaluation Response]\n\n" \
+    "Inputs: #{test_case.input_variables.to_json}\n" \
+    "Expected standard: #{test_case.expected_behavior}\n\n" \
+    "Draft your qualitative response details or use the standard template below:\n" \
+    "\"Based on your conversation, I understand you are feeling ignored by your friend. It is completely natural to feel hurt when someone we care about seems distant...\"\n\n" \
+    "Resolved prompt preview:\n#{user_prompt.first(200)}"
   end
 end
