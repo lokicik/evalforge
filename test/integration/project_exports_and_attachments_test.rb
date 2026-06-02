@@ -1,4 +1,3 @@
-require "csv"
 require "test_helper"
 
 class ProjectExportsAndAttachmentsTest < ActionDispatch::IntegrationTest
