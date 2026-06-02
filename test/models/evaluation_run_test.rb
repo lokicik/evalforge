@@ -37,6 +37,7 @@ class EvaluationRunTest < ActiveSupport::TestCase
     report_template = File.read(Rails.root.join("app/views/evaluation_runs/report.html.erb"))
 
     assert_includes report_template, "Public Summary Report"
+    assert_includes report_template, "Sample Failures"
     assert_not_includes report_template, "system_prompt"
     assert_not_includes report_template, "user_prompt_template"
     assert_not_includes report_template, "input_variables"

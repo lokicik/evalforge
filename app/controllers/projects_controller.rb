@@ -102,7 +102,7 @@ class ProjectsController < ApplicationController
   private
 
   def set_project
-    @project = Current.user.projects.find(params[:id])
+    @project = Current.user.projects.with_attached_reference_files.find(params[:id])
   end
 
   def project_params

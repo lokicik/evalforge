@@ -8,11 +8,17 @@ Rails.application.routes.draw do
   resources :projects do
     get :review_queue, on: :collection
     get :comparison_dashboard
+    member do
+      get :export_test_cases, to: "project_exports#test_cases"
+      get :export_model_responses, to: "project_exports#model_responses"
+      get :export_scores, to: "project_exports#scores"
+      get :export_run_summary, to: "project_exports#run_summary"
+    end
+    resources :attachments, only: %i[ create destroy ], controller: "project_attachments"
     resources :prompts
     resources :test_cases
     resources :rubrics
     resources :evaluation_runs, only: %i[ show new create destroy ] do
-      get :report, on: :member
       get :export_csv, on: :member
     end
     resources :model_responses, only: [] do

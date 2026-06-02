@@ -1,6 +1,8 @@
+require "csv"
+
 class EvaluationRunsController < ApplicationController
   before_action :set_project, except: %i[ report ]
-  before_action :set_evaluation_run, only: %i[ show destroy report ]
+  before_action :set_evaluation_run, only: %i[ show destroy report export_csv ]
 
   # Skip auth for public report page!
   allow_unauthenticated_access only: %i[ report ]
@@ -86,8 +88,6 @@ class EvaluationRunsController < ApplicationController
   def report
     @project = @evaluation_run.project
 
-    # Calculate top failed criteria
-    # Group scores by criterion and find average value, sorting for lowest averages!
     all_scores = Score.joins(:model_response).where(model_responses: { evaluation_run_id: @evaluation_run.id })
     @failed_criteria = []
     
@@ -97,43 +97,65 @@ class EvaluationRunsController < ApplicationController
                                     .select { |c| c[:avg] < 3.5 } # failed threshold
                                     .sort_by { |c| c[:avg] }
     end
+
+    @sample_failures = @evaluation_run.model_responses
+                                      .includes(:test_case, :review, scores: :rubric_criterion)
+                                      .joins(:review)
+                                      .where(status: "completed", reviews: { status: "failed" })
+                                      .select do |response|
+      response.scores.any? { |score| score.value < 4 }
+    end
+                                      .sort_by { |response| response.average_score || Float::INFINITY }
+                                      .first(3)
   end
 
   def export_csv
-    require "csv"
-    @evaluation_run = @project.evaluation_runs.find(params[:id])
     responses = @evaluation_run.model_responses.includes(:test_case, :review, scores: :rubric_criterion)
 
     csv_data = CSV.generate(headers: true) do |csv|
       csv << [
-        "Run Name", 
-        "Model Name", 
+        "Model Response ID",
+        "Run Name",
+        "Prompt",
+        "Prompt Version",
+        "Model Name",
         "Test Case ID", 
+        "Response Status",
         "Variables", 
         "Expected Behavior", 
         "Model Response", 
+        "Tokens Used",
+        "Cost",
         "Review Status", 
         "Avg Score %", 
-        "Reviewer Notes"
+        "Reviewer Notes",
+        "Created At"
       ]
 
       responses.each do |resp|
         csv << [
+          resp.id,
           @evaluation_run.name,
+          @evaluation_run.prompt_version.prompt.name,
+          @evaluation_run.prompt_version.version_number,
           @evaluation_run.llm_model,
           resp.test_case_id,
+          resp.status,
           resp.test_case.input_variables.to_json,
           resp.test_case.expected_behavior,
           resp.raw_response,
+          resp.tokens_used,
+          resp.cost,
           resp.reviewed? ? resp.review.status : "pending",
           resp.reviewed? ? "#{resp.average_score_percentage}%" : "N/A",
-          resp.reviewed? ? resp.review.notes : ""
+          resp.reviewed? ? resp.review.notes : "",
+          resp.created_at.iso8601
         ]
       end
     end
 
     send_data csv_data, 
-              filename: "evaluation-run-#{@evaluation_run.id}-#{Date.today}.csv", 
+              filename: "evaluation-run-#{@evaluation_run.id}-model-responses-#{Date.current}.csv", 
               type: "text/csv; charset=utf-8; header=present"
   end
 

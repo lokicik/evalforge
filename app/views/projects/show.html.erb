@@ -31,6 +31,39 @@
     </div>
   </div>
 
+  <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-4">
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Reference Files</h2>
+        <p class="text-xs text-slate-400">Attach benchmark docs, specs, screenshots, and other project materials.</p>
+      </div>
+
+      <%= form_with url: project_attachments_path(@project), multipart: true, class: "flex items-center gap-2 flex-wrap" do %>
+        <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+          <span>Select Files</span>
+          <%= file_field_tag "project[reference_files][]", multiple: true, class: "hidden" %>
+        </label>
+        <%= submit_tag "Upload Files", class: "px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition cursor-pointer" %>
+      <% end %>
+    </div>
+
+    <% if @project.reference_files.attached? %>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <% @project.reference_files.each do |file| %>
+          <div class="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/30 px-4 py-3">
+            <div class="min-w-0">
+              <%= link_to file.filename.to_s, url_for(file), class: "text-sm font-semibold text-slate-800 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 truncate block" %>
+              <p class="text-[11px] text-slate-400"><%= number_to_human_size(file.byte_size) %> • <%= file.content_type.presence || "unknown" %></p>
+            </div>
+            <%= button_to "Delete", project_attachment_path(@project, file.attachment), method: :delete, class: "px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-[11px] font-bold text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900 cursor-pointer" %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-xs text-slate-400 italic">No reference files uploaded yet.</p>
+    <% end %>
+  </div>
+
   <!-- Dashboard Navigation Tabs -->
   <% active_tab = params[:tab].presence || "prompts" %>
   <div class="border-b border-slate-200 dark:border-slate-800">
@@ -127,12 +160,15 @@
             <h2 class="text-xl font-bold text-slate-900 dark:text-white">Test Cases</h2>
             <p class="text-xs text-slate-400">Configure datasets and target evaluations</p>
           </div>
-          <%= link_to new_project_test_case_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 dark:text-indigo-400 text-xs font-bold transition cursor-pointer border border-indigo-100/50 dark:border-indigo-900/30" do %>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Add Test Case
-          <% end %>
+          <div class="flex items-center gap-2">
+            <%= link_to "Export CSV", export_test_cases_project_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer" %>
+            <%= link_to new_project_test_case_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 dark:text-indigo-400 text-xs font-bold transition cursor-pointer border border-indigo-100/50 dark:border-indigo-900/30" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add Test Case
+            <% end %>
+          </div>
         </div>
 
         <% if @test_cases.any? %>
@@ -273,12 +309,17 @@
             <h2 class="text-xl font-bold text-slate-900 dark:text-white">Evaluation Runs</h2>
             <p class="text-xs text-slate-400">Launch and track test runs and metrics</p>
           </div>
-          <%= link_to new_project_evaluation_run_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 dark:text-indigo-400 text-xs font-bold transition cursor-pointer border border-indigo-100/50 dark:border-indigo-900/30" do %>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            Start Run
-          <% end %>
+          <div class="flex items-center gap-2 flex-wrap">
+            <%= link_to "Run Summary CSV", export_run_summary_project_path(@project), class: "inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer" %>
+            <%= link_to "Responses CSV", export_model_responses_project_path(@project), class: "inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer" %>
+            <%= link_to "Scores CSV", export_scores_project_path(@project), class: "inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer" %>
+            <%= link_to new_project_evaluation_run_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 dark:text-indigo-400 text-xs font-bold transition cursor-pointer border border-indigo-100/50 dark:border-indigo-900/30" do %>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Start Run
+            <% end %>
+          </div>
         </div>
 
         <% if @evaluation_runs.any? %>
