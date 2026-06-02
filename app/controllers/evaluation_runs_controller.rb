@@ -1,14 +1,16 @@
 require "csv"
+require "prawn"
 
 class EvaluationRunsController < ApplicationController
-  before_action :set_project, except: %i[ report ]
-  before_action :set_evaluation_run, only: %i[ show destroy report export_csv retry_failed rerun ]
+  before_action :set_project, except: %i[ report report_pdf ]
+  before_action :set_evaluation_run, only: %i[ show destroy report report_pdf export_csv retry_failed rerun update_report_access regenerate_share_token revoke_share_token ]
 
   # Skip auth for public report page!
-  allow_unauthenticated_access only: %i[ report ]
+  allow_unauthenticated_access only: %i[ report report_pdf ]
 
   def show
     @model_responses = @evaluation_run.model_responses.includes(:test_case, :review, scores: :rubric_criterion)
+    load_reporting_data
   end
 
   def new
@@ -106,29 +108,88 @@ class EvaluationRunsController < ApplicationController
     redirect_to project_evaluation_run_path(@project, @evaluation_run), alert: "The rerun could not be created."
   end
 
+  def update_report_access
+    expires_at = params.dig(:evaluation_run, :report_expires_at)
+
+    @evaluation_run.update!(
+      report_expires_at: expires_at.present? ? Date.iso8601(expires_at).in_time_zone.end_of_day : nil,
+      report_revoked_at: nil
+    )
+
+    redirect_to project_evaluation_run_path(@project, @evaluation_run), notice: "Public report access updated."
+  rescue ArgumentError, TypeError
+    redirect_to project_evaluation_run_path(@project, @evaluation_run), alert: "Choose a valid report expiry date."
+  end
+
+  def regenerate_share_token
+    @evaluation_run.regenerate_public_report!
+    redirect_to project_evaluation_run_path(@project, @evaluation_run), notice: "A new public report link has been generated."
+  end
+
+  def revoke_share_token
+    @evaluation_run.revoke_public_report!
+    redirect_to project_evaluation_run_path(@project, @evaluation_run), notice: "The public report link has been revoked."
+  end
+
   # Public report page (read-only)
   def report
-    @project = @evaluation_run.project
+    ensure_public_report_available!
+    load_reporting_data
+  end
 
-    all_scores = Score.joins(:model_response).where(model_responses: { evaluation_run_id: @evaluation_run.id })
-    @failed_criteria = []
-    
-    if all_scores.any?
-      @failed_criteria = all_scores.group_by(&:rubric_criterion)
-                                    .map { |crit, scores| { criterion: crit, avg: (scores.map(&:value).sum.to_f / scores.count).round(2) } }
-                                    .select { |c| c[:avg] < 3.5 } # failed threshold
-                                    .sort_by { |c| c[:avg] }
+  def report_pdf
+    ensure_public_report_available!
+    load_reporting_data
+
+    pdf = Prawn::Document.new(page_size: "A4", margin: 40)
+    pdf.text @evaluation_run.name, size: 24, style: :bold
+    pdf.move_down 8
+    pdf.text "Prompt: #{@evaluation_run.prompt_version.prompt.name} (V#{@evaluation_run.prompt_version.version_number})"
+    pdf.text "Model: #{@evaluation_run.llm_model}"
+    pdf.text "Generated: #{Time.current.strftime('%B %d, %Y')}"
+    pdf.move_down 16
+
+    pdf.text "Summary", size: 16, style: :bold
+    pdf.move_down 8
+    pdf.text "Average Score: #{@evaluation_run.average_score}%"
+    pdf.text "Pass Rate: #{@evaluation_run.pass_rate}%"
+    pdf.text "Reviewed Cases: #{@evaluation_run.reviewed_cases_count} / #{@evaluation_run.model_responses.count}"
+    pdf.text "Failures: #{@evaluation_run.failures_count}"
+    pdf.text "Pending Review: #{@evaluation_run.pending_review_count}"
+    pdf.text "Tokens Used: #{@evaluation_run.total_tokens_used}"
+    pdf.text "Run Cost: $#{format('%.6f', @evaluation_run.total_cost)}"
+    pdf.move_down 16
+
+    pdf.text "Top Failed Criteria", size: 16, style: :bold
+    pdf.move_down 8
+    if @failed_criteria.any?
+      @failed_criteria.each do |entry|
+        pdf.text "#{entry[:criterion].name}: #{entry[:avg]} / 5.0"
+      end
+    else
+      pdf.text "No criteria are below the failure threshold."
     end
 
-    @sample_failures = @evaluation_run.model_responses
-                                      .includes(:test_case, :review, scores: :rubric_criterion)
-                                      .joins(:review)
-                                      .where(status: "completed", reviews: { status: "failed" })
-                                      .select do |response|
-      response.scores.any? { |score| score.value < 4 }
+    pdf.move_down 16
+    pdf.text "Sample Failures", size: 16, style: :bold
+    pdf.move_down 8
+    if @sample_failures.any?
+      @sample_failures.each do |response|
+        pdf.text "Case ##{response.test_case_id} | #{response.test_case.difficulty} | #{response.average_score_percentage}%"
+        failed_scores = response.scores.select { |score| score.value < 4 }.sort_by(&:value)
+        failed_scores.each do |score|
+          pdf.text "  - #{score.rubric_criterion.name}: #{score.value} / 5"
+        end
+        pdf.move_down 6
+      end
+    else
+      pdf.text "No reviewed failed cases are available to sample publicly."
     end
-                                      .sort_by { |response| response.average_score || Float::INFINITY }
-                                      .first(3)
+
+    send_data pdf.render,
+              filename: "evaluation-run-#{@evaluation_run.id}-public-report-#{Date.current}.pdf",
+              type: "application/pdf",
+              disposition: "attachment"
   end
 
   def export_csv
@@ -188,7 +249,7 @@ class EvaluationRunsController < ApplicationController
   end
 
   def set_evaluation_run
-    if action_name == "report"
+    if %w[report report_pdf].include?(action_name)
       @evaluation_run = EvaluationRun.find_by!(share_token: params[:share_token])
     else
       @evaluation_run = @project.evaluation_runs.find(params[:id])
@@ -257,5 +318,17 @@ class EvaluationRunsController < ApplicationController
 
     evaluation_run.refresh_status!
     true
+  end
+
+  def ensure_public_report_available!
+    raise ActiveRecord::RecordNotFound unless @evaluation_run.public_report_active?
+  end
+
+  def load_reporting_data
+    @project = @evaluation_run.project
+    @failed_criteria = @evaluation_run.failed_criteria_summary
+    @sample_failures = @evaluation_run.sample_failures
+    @criterion_failure_trends = @evaluation_run.criterion_failure_trends
+    @project_model_comparison = @evaluation_run.project_model_comparison
   end
 end

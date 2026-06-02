@@ -29,6 +29,9 @@ Rails.application.routes.draw do
       get :export_csv, on: :member
       post :retry_failed, on: :member
       post :rerun, on: :member
+      patch :update_report_access, on: :member
+      post :regenerate_share_token, on: :member
+      post :revoke_share_token, on: :member
     end
     resources :model_responses, only: [] do
       resources :reviews, only: %i[ new create ]
@@ -36,6 +39,7 @@ Rails.application.routes.draw do
   end
 
   get "evaluation_runs/:share_token/report" => "evaluation_runs#report", as: :public_evaluation_run_report
+  get "evaluation_runs/:share_token/report.pdf" => "evaluation_runs#report_pdf", as: :public_evaluation_run_report_pdf
 
   root "projects#index"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

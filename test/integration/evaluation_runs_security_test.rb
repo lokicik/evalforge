@@ -167,7 +167,110 @@ class EvaluationRunsSecurityTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Case ##{pending_case.id}"
   end
 
+  test "owner can update report access revoke links and regenerate tokens" do
+    sign_in_as(@user)
+
+    run = create_completed_run(name: "Managed Run")
+    original_token = run.share_token
+
+    patch update_report_access_project_evaluation_run_path(run.project, run), params: {
+      evaluation_run: { report_expires_at: "2026-06-30" }
+    }, headers: MODERN_BROWSER_HEADERS
+
+    assert_redirected_to project_evaluation_run_path(run.project, run)
+    run.reload
+    assert_equal Date.new(2026, 6, 30), run.report_expires_at.to_date
+    assert_nil run.report_revoked_at
+
+    post revoke_share_token_project_evaluation_run_path(run.project, run), headers: MODERN_BROWSER_HEADERS
+    assert_redirected_to project_evaluation_run_path(run.project, run)
+    run.reload
+    assert run.report_revoked?
+
+    post regenerate_share_token_project_evaluation_run_path(run.project, run), headers: MODERN_BROWSER_HEADERS
+    assert_redirected_to project_evaluation_run_path(run.project, run)
+    run.reload
+    assert_not_equal original_token, run.share_token
+    assert_nil run.report_revoked_at
+  end
+
+  test "revoked and expired public reports return not found" do
+    revoked_run = create_completed_run(name: "Revoked Run")
+    revoked_run.revoke_public_report!
+
+    get public_evaluation_run_report_path(revoked_run), headers: MODERN_BROWSER_HEADERS
+    assert_response :not_found
+
+    expired_run = create_completed_run(name: "Expired Run")
+    expired_run.update!(report_expires_at: 1.day.ago)
+
+    get public_evaluation_run_report_path(expired_run), headers: MODERN_BROWSER_HEADERS
+    assert_response :not_found
+  end
+
+  test "rotating the token invalidates the previous public report url" do
+    sign_in_as(@user)
+
+    run = create_completed_run(name: "Rotated Run")
+    old_token = run.share_token
+
+    post regenerate_share_token_project_evaluation_run_path(run.project, run), headers: MODERN_BROWSER_HEADERS
+
+    run.reload
+    assert_not_equal old_token, run.share_token
+
+    get "/evaluation_runs/#{old_token}/report", headers: MODERN_BROWSER_HEADERS
+    assert_response :not_found
+
+    get public_evaluation_run_report_path(run), headers: MODERN_BROWSER_HEADERS
+    assert_response :success
+  end
+
+  test "public report pdf is available for active links" do
+    run = create_completed_run(name: "PDF Run")
+
+    get public_evaluation_run_report_pdf_path(run), headers: MODERN_BROWSER_HEADERS
+
+    assert_response :success
+    assert_equal "application/pdf", response.media_type
+  end
+
   private
+
+  def create_completed_run(name:)
+    project = Project.create!(user: @user, name: "#{name} Project")
+    prompt = project.prompts.create!(name: "#{name} Prompt")
+    prompt_version = prompt.prompt_versions.create!(
+      version_number: 1,
+      system_prompt: "Hidden system prompt",
+      user_prompt_template: "Template {{name}}",
+      description: "Prompt version"
+    )
+    rubric = project.rubrics.create!(name: "#{name} Rubric", description: "Checks quality")
+    criterion = rubric.rubric_criteria.create!(name: "Accuracy", weight: 5, description: "Should stay accurate")
+    test_case = project.test_cases.create!(
+      input_variables: { name: "Ada" },
+      expected_behavior: "Stay concise",
+      tags: "priority",
+      difficulty: "medium"
+    )
+    run = project.evaluation_runs.create!(
+      name: name,
+      prompt_version: prompt_version,
+      llm_model: "gpt-4o",
+      status: "completed"
+    )
+    response = run.model_responses.create!(
+      test_case: test_case,
+      raw_response: "Sensitive output",
+      status: "completed",
+      tokens_used: 321,
+      cost: BigDecimal("0.012345")
+    )
+    response.create_review!(reviewer: @user, status: "failed", notes: "Hidden review note")
+    response.scores.create!(rubric_criterion: criterion, value: 2, feedback: "Needs work")
+    run
+  end
 
   def create_user(email_address)
     User.create!(

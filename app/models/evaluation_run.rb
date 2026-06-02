@@ -57,6 +57,98 @@ class EvaluationRun < ApplicationRecord
     model_responses.joins(:review).where(reviews: { status: "failed" }).count
   end
 
+  def pending_review_count
+    model_responses.where(status: "completed").left_outer_joins(:review).where(reviews: { id: nil }).count
+  end
+
+  def total_tokens_used
+    model_responses.sum(:tokens_used)
+  end
+
+  def total_cost
+    model_responses.sum(:cost).to_d.round(6)
+  end
+
+  def failure_rate
+    return 0.0 if reviewed_cases_count.zero?
+
+    ((failures_count.to_f / reviewed_cases_count) * 100.0).round(1)
+  end
+
+  def report_revoked?
+    report_revoked_at.present?
+  end
+
+  def report_expired?
+    report_expires_at.present? && report_expires_at <= Time.current
+  end
+
+  def public_report_active?
+    !report_revoked? && !report_expired?
+  end
+
+  def regenerate_public_report!
+    update!(share_token: SecureRandom.base58(24), report_revoked_at: nil)
+  end
+
+  def revoke_public_report!
+    update!(report_revoked_at: Time.current)
+  end
+
+  def criterion_failure_trends
+    scores = Score.joins(model_response: :review)
+                  .where(model_responses: { evaluation_run_id: id }, reviews: { status: "failed" })
+                  .includes(:rubric_criterion)
+
+    scores.group_by(&:rubric_criterion).map do |criterion, criterion_scores|
+      {
+        criterion: criterion,
+        failures: criterion_scores.count,
+        average_score: (criterion_scores.sum(&:value).to_f / criterion_scores.count).round(2)
+      }
+    end.sort_by { |entry| [ -entry[:failures], entry[:average_score] ] }
+  end
+
+  def sample_failures(limit: 3)
+    model_responses
+      .includes(:test_case, :review, scores: :rubric_criterion)
+      .joins(:review)
+      .where(status: "completed", reviews: { status: "failed" })
+      .select { |response| response.scores.any? { |score| score.value < 4 } }
+      .sort_by { |response| response.average_score || Float::INFINITY }
+      .first(limit)
+  end
+
+  def failed_criteria_summary
+    all_scores = Score.joins(:model_response).where(model_responses: { evaluation_run_id: id })
+    return [] unless all_scores.any?
+
+    all_scores.group_by(&:rubric_criterion)
+              .map { |crit, scores| { criterion: crit, avg: (scores.map(&:value).sum.to_f / scores.count).round(2) } }
+              .select { |entry| entry[:avg] < 3.5 }
+              .sort_by { |entry| entry[:avg] }
+  end
+
+  def project_model_comparison
+    project.evaluation_runs
+           .joins(:model_responses)
+           .where.not(id: nil)
+           .group_by(&:llm_model)
+           .map do |model_name, runs|
+      average_score = runs.sum(&:average_score) / runs.size.to_f
+      average_pass_rate = runs.sum(&:pass_rate) / runs.size.to_f
+      total_failures = runs.sum(&:failures_count)
+
+      {
+        model_name: model_name,
+        runs_count: runs.size,
+        average_score: average_score.round(1),
+        average_pass_rate: average_pass_rate.round(1),
+        total_failures: total_failures
+      }
+    end.sort_by { |entry| -entry[:average_score] }
+  end
+
   def pending_responses_count
     model_responses.where(status: "pending").count
   end
