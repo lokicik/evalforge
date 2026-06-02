@@ -12,6 +12,9 @@ class ProjectsController < ApplicationController
 
   def show
     @prompt_query = params[:prompt_query].to_s.strip
+    @test_case_query = params[:test_case_query].to_s.strip
+    @test_case_tag = params[:test_case_tag].to_s.strip
+    @test_case_difficulty = params[:test_case_difficulty].to_s.strip
     @run_query = params[:run_query].to_s.strip
     @run_status = params[:run_status].to_s.strip
     @run_model = params[:run_model].to_s.strip
@@ -24,6 +27,16 @@ class ProjectsController < ApplicationController
     end
 
     @test_cases = @project.test_cases.order(created_at: :desc)
+    if @test_case_query.present?
+      @test_cases = @test_cases.where(
+        "expected_behavior ILIKE :query OR COALESCE(notes, '') ILIKE :query OR CAST(input_variables AS TEXT) ILIKE :query OR COALESCE(tags, '') ILIKE :query",
+        query: "%#{@test_case_query}%"
+      )
+    end
+    if @test_case_tag.present?
+      @test_cases = @test_cases.where("COALESCE(tags, '') ILIKE ?", "%#{@test_case_tag}%")
+    end
+    @test_cases = @test_cases.where(difficulty: @test_case_difficulty) if @test_case_difficulty.present?
     @rubrics = @project.rubrics.order(created_at: :desc)
     @evaluation_runs = @project.evaluation_runs.includes(prompt_version: :prompt).order(created_at: :desc)
 
@@ -44,6 +57,10 @@ class ProjectsController < ApplicationController
 
     @run_status_options = [ "pending", "running", "completed", "partial", "failed" ]
     @run_model_options = @project.evaluation_runs.distinct.order(:llm_model).pluck(:llm_model)
+    @test_case_tag_options = @project.test_cases.flat_map(&:tags_array).uniq.sort
+    @test_case_difficulty_options = %w[low medium high]
+    @import_errors = Array(flash[:import_errors])
+    @import_summary = flash[:import_summary]
   end
 
   def new

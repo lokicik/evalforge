@@ -16,7 +16,14 @@ Rails.application.routes.draw do
     end
     resources :attachments, only: %i[ create destroy ], controller: "project_attachments"
     resources :prompts
-    resources :test_cases
+    resources :test_cases do
+      collection do
+        post :import
+        get :template
+        patch :bulk_update
+        patch :bulk_destroy
+      end
+    end
     resources :rubrics
     resources :evaluation_runs, only: %i[ show new create destroy ] do
       get :export_csv, on: :member

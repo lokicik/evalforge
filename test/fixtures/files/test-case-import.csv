@@ -1,0 +1,2 @@
+input_variables_json,expected_behavior,tags,difficulty,notes
+"{""name"":""Ada"",""issue"":""ignored""}","Respond with empathy and avoid overpromising.","empathy, social","medium","Imported fixture row"

@@ -164,12 +164,13 @@
     <% when "test_cases" %>
       <!-- TEST CASES TAB -->
       <div class="space-y-6">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 class="text-xl font-bold text-slate-900 dark:text-white">Test Cases</h2>
             <p class="text-xs text-slate-400">Configure datasets and target evaluations</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <%= link_to "CSV Template", template_project_test_cases_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer" %>
             <%= link_to "Export CSV", export_test_cases_project_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 transition cursor-pointer" %>
             <%= link_to new_project_test_case_path(@project), class: "inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 dark:text-indigo-400 text-xs font-bold transition cursor-pointer border border-indigo-100/50 dark:border-indigo-900/30" do %>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
@@ -180,11 +181,70 @@
           </div>
         </div>
 
+        <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
+          <%= form_with url: project_path(@project), method: :get, local: true, class: "grid grid-cols-1 md:grid-cols-4 gap-3" do %>
+            <%= hidden_field_tag :tab, "test_cases" %>
+            <%= text_field_tag :test_case_query, @test_case_query, placeholder: "Search cases, notes, tags, or inputs", class: "md:col-span-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-0" %>
+            <%= select_tag :test_case_difficulty, options_for_select([["All difficulties", ""]] + @test_case_difficulty_options.map { |value| [value.titleize, value] }, @test_case_difficulty), class: "rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 focus:border-indigo-500 focus:ring-0" %>
+            <%= select_tag :test_case_tag, options_for_select([["All tags", ""]] + @test_case_tag_options.map { |tag| [tag, tag] }, @test_case_tag), class: "rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 focus:border-indigo-500 focus:ring-0" %>
+            <div class="md:col-span-4 flex items-center gap-3">
+              <%= submit_tag "Apply Filters", class: "px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition cursor-pointer" %>
+              <% if @test_case_query.present? || @test_case_difficulty.present? || @test_case_tag.present? %>
+                <%= link_to "Clear", project_path(@project, tab: "test_cases"), class: "text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" %>
+              <% end %>
+            </div>
+          <% end %>
+
+          <%= form_with url: import_project_test_cases_path(@project), multipart: true, class: "rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900 p-4 shadow-sm space-y-3" do %>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Import From CSV</h3>
+              <p class="text-xs text-slate-400">Use the template format with `input_variables_json`, `expected_behavior`, `tags`, `difficulty`, and `notes`.</p>
+            </div>
+            <%= file_field_tag :file, accept: ".csv,text/csv", class: "block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5 text-xs text-slate-600 dark:text-slate-300" %>
+            <%= submit_tag "Import CSV", class: "px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition cursor-pointer" %>
+          <% end %>
+        </div>
+
+        <% if @import_summary.present? || @import_errors.any? %>
+          <div class="rounded-2xl border border-amber-100 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-4 space-y-2">
+            <% if @import_summary.present? %>
+              <p class="text-sm font-semibold text-amber-700 dark:text-amber-300"><%= @import_summary %></p>
+            <% end %>
+            <% if @import_errors.any? %>
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">Import Errors</p>
+                <ul class="mt-2 space-y-1 text-xs text-amber-700 dark:text-amber-300">
+                  <% @import_errors.each do |error| %>
+                    <li><%= error %></li>
+                  <% end %>
+                </ul>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+
         <% if @test_cases.any? %>
-          <div class="overflow-hidden border border-slate-200/60 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-900 shadow-sm">
+          <%= form_with url: bulk_update_project_test_cases_path(@project), method: :patch, local: true, class: "space-y-4" do %>
+            <div class="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900 p-4 shadow-sm space-y-3">
+              <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <h3 class="text-sm font-bold text-slate-900 dark:text-white">Bulk Actions</h3>
+                  <p class="text-xs text-slate-400">Select rows to merge tags, change difficulty, or delete them.</p>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <%= text_field_tag :bulk_tags, nil, placeholder: "Add tags to selected cases", class: "rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-0" %>
+                  <%= select_tag :bulk_difficulty, options_for_select([["Keep difficulty", ""], ["Low", "low"], ["Medium", "medium"], ["High", "high"]]), class: "rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:border-indigo-500 focus:ring-0" %>
+                  <%= submit_tag "Update Selected", class: "px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition cursor-pointer" %>
+                  <%= button_tag "Delete Selected", formaction: bulk_destroy_project_test_cases_path(@project), formmethod: "post", class: "px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900 text-xs font-bold transition cursor-pointer" %>
+                </div>
+              </div>
+            </div>
+
+            <div class="overflow-hidden border border-slate-200/60 dark:border-slate-800/60 rounded-2xl bg-white dark:bg-slate-900 shadow-sm">
             <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
               <thead class="bg-slate-50 dark:bg-slate-900/60">
                 <tr>
+                  <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Select</th>
                   <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Input variables</th>
                   <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Expected behavior</th>
                   <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Difficulty</th>
@@ -195,6 +255,9 @@
               <tbody class="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                 <% @test_cases.each do |tc| %>
                   <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition">
+                    <td class="px-4 py-4 align-top">
+                      <%= check_box_tag "test_case_ids[]", tc.id, false, class: "h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" %>
+                    </td>
                     <td class="px-6 py-4">
                       <div class="space-y-1">
                         <% tc.input_variables.each do |key, value| %>
@@ -238,6 +301,7 @@
               </tbody>
             </table>
           </div>
+          <% end %>
         <% else %>
           <div class="text-center py-12 bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl">
             <h3 class="text-sm font-bold text-slate-900 dark:text-white mb-1">No test cases yet</h3>
