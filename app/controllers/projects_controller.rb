@@ -2,14 +2,48 @@ class ProjectsController < ApplicationController
   before_action :set_project, only: %i[ show edit update destroy ]
 
   def index
+    @project_query = params[:project_query].to_s.strip
     @projects = Current.user.projects.order(created_at: :desc)
+
+    if @project_query.present?
+      @projects = @projects.where("projects.name ILIKE :query OR COALESCE(projects.description, '') ILIKE :query", query: "%#{@project_query}%")
+    end
   end
 
   def show
+    @prompt_query = params[:prompt_query].to_s.strip
+    @run_query = params[:run_query].to_s.strip
+    @run_status = params[:run_status].to_s.strip
+    @run_model = params[:run_model].to_s.strip
+    @run_from = params[:run_from].to_s.strip
+    @run_to = params[:run_to].to_s.strip
+
     @prompts = @project.prompts.includes(:latest_version).order(created_at: :desc)
+    if @prompt_query.present?
+      @prompts = @prompts.where("prompts.name ILIKE :query OR COALESCE(prompts.description, '') ILIKE :query", query: "%#{@prompt_query}%")
+    end
+
     @test_cases = @project.test_cases.order(created_at: :desc)
     @rubrics = @project.rubrics.order(created_at: :desc)
-    @evaluation_runs = @project.evaluation_runs.includes(:prompt_version).order(created_at: :desc)
+    @evaluation_runs = @project.evaluation_runs.includes(prompt_version: :prompt).order(created_at: :desc)
+
+    if @run_query.present?
+      @evaluation_runs = @evaluation_runs.joins(prompt_version: :prompt).where(
+        "evaluation_runs.name ILIKE :query OR evaluation_runs.llm_model ILIKE :query OR prompts.name ILIKE :query",
+        query: "%#{@run_query}%"
+      )
+    end
+
+    @evaluation_runs = @evaluation_runs.where(status: @run_status) if @run_status.present?
+    @evaluation_runs = @evaluation_runs.where(llm_model: @run_model) if @run_model.present?
+
+    run_from_date = parse_date_param(@run_from)
+    run_to_date = parse_date_param(@run_to)
+    @evaluation_runs = @evaluation_runs.where("evaluation_runs.created_at >= ?", run_from_date.beginning_of_day) if run_from_date
+    @evaluation_runs = @evaluation_runs.where("evaluation_runs.created_at <= ?", run_to_date.end_of_day) if run_to_date
+
+    @run_status_options = [ "pending", "running", "completed", "partial", "failed" ]
+    @run_model_options = @project.evaluation_runs.distinct.order(:llm_model).pluck(:llm_model)
   end
 
   def new
@@ -107,5 +141,13 @@ class ProjectsController < ApplicationController
 
   def project_params
     params.require(:project).permit(:name, :description)
+  end
+
+  def parse_date_param(value)
+    return if value.blank?
+
+    Date.iso8601(value)
+  rescue ArgumentError
+    nil
   end
 end

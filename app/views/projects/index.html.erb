@@ -34,6 +34,14 @@
       </div>
     </div>
 
+    <%= form_with url: projects_path, method: :get, local: true, class: "flex items-center gap-3 flex-wrap" do %>
+      <%= text_field_tag :project_query, @project_query, placeholder: "Search projects", class: "w-full md:w-96 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-0" %>
+      <%= submit_tag "Search", class: "px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition cursor-pointer" %>
+      <% if @project_query.present? %>
+        <%= link_to "Clear", projects_path, class: "text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" %>
+      <% end %>
+    <% end %>
+
     <% if @projects.any? %>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <% @projects.each do |project| %>

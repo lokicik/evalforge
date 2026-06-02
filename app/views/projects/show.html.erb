@@ -112,6 +112,15 @@
           <% end %>
         </div>
 
+        <%= form_with url: project_path(@project), method: :get, local: true, class: "flex items-center gap-3 flex-wrap" do %>
+          <%= hidden_field_tag :tab, "prompts" %>
+          <%= text_field_tag :prompt_query, @prompt_query, placeholder: "Search prompts", class: "w-full md:w-96 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-0" %>
+          <%= submit_tag "Search", class: "px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition cursor-pointer" %>
+          <% if @prompt_query.present? %>
+            <%= link_to "Clear", project_path(@project, tab: "prompts"), class: "text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" %>
+          <% end %>
+        <% end %>
+
         <% if @prompts.any? %>
           <div class="grid grid-cols-1 gap-4">
             <% @prompts.each do |prompt| %>
@@ -322,6 +331,23 @@
           </div>
         </div>
 
+        <%= form_with url: project_path(@project), method: :get, local: true, class: "grid grid-cols-1 md:grid-cols-5 gap-3" do %>
+          <%= hidden_field_tag :tab, "evaluation_runs" %>
+          <%= text_field_tag :run_query, @run_query, placeholder: "Search runs, prompts, or models", class: "md:col-span-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-0" %>
+          <%= select_tag :run_status, options_for_select([["All statuses", ""]] + @run_status_options.map { |status| [status.titleize, status] }, @run_status), class: "rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 focus:border-indigo-500 focus:ring-0" %>
+          <%= select_tag :run_model, options_for_select([["All models", ""]] + @run_model_options.map { |model| [model, model] }, @run_model), class: "rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 focus:border-indigo-500 focus:ring-0" %>
+          <div class="grid grid-cols-2 gap-3">
+            <%= date_field_tag :run_from, @run_from, class: "rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 focus:border-indigo-500 focus:ring-0" %>
+            <%= date_field_tag :run_to, @run_to, class: "rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 focus:border-indigo-500 focus:ring-0" %>
+          </div>
+          <div class="md:col-span-5 flex items-center gap-3">
+            <%= submit_tag "Apply Filters", class: "px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition cursor-pointer" %>
+            <% if @run_query.present? || @run_status.present? || @run_model.present? || @run_from.present? || @run_to.present? %>
+              <%= link_to "Clear", project_path(@project, tab: "evaluation_runs"), class: "text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" %>
+            <% end %>
+          </div>
+        <% end %>
+
         <% if @evaluation_runs.any? %>
           <div class="grid grid-cols-1 gap-4">
             <% @evaluation_runs.each do |run| %>
@@ -337,6 +363,8 @@
                       <span class="inline-flex px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold animate-pulse">running</span>
                     <% when "pending" %>
                       <span class="inline-flex px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold">pending</span>
+                    <% when "partial" %>
+                      <span class="inline-flex px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 text-[10px] font-bold">partial</span>
                     <% else %>
                       <span class="inline-flex px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-[10px] font-bold">failed</span>
                     <% end %>
@@ -356,7 +384,7 @@
                   </div>
 
                   <!-- Mini Metric Row -->
-                  <% if run.status == "completed" || run.model_responses.joins(:review).any? %>
+                  <% if run.status.in?(%w[completed partial failed]) || run.model_responses.joins(:review).any? %>
                     <div class="flex items-center gap-6 pt-3">
                       <div class="space-y-0.5">
                         <span class="text-[10px] font-bold uppercase text-slate-400">Avg Score</span>
@@ -371,8 +399,8 @@
                         <div class="text-sm font-bold text-slate-700 dark:text-slate-200"><%= run.reviewed_cases_count %> / <%= run.model_responses.count %></div>
                       </div>
                       <div class="space-y-0.5">
-                        <span class="text-[10px] font-bold uppercase text-slate-400">Failures</span>
-                        <div class="text-sm font-bold text-rose-500"><%= run.failures_count %></div>
+                        <span class="text-[10px] font-bold uppercase text-slate-400">Job Failures</span>
+                        <div class="text-sm font-bold text-rose-500"><%= run.failed_responses_count %></div>
                       </div>
                     </div>
                   <% end %>

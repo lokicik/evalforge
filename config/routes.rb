@@ -20,6 +20,8 @@ Rails.application.routes.draw do
     resources :rubrics
     resources :evaluation_runs, only: %i[ show new create destroy ] do
       get :export_csv, on: :member
+      post :retry_failed, on: :member
+      post :rerun, on: :member
     end
     resources :model_responses, only: [] do
       resources :reviews, only: %i[ new create ]

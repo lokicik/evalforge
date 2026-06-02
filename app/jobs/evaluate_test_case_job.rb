@@ -6,7 +6,10 @@ class EvaluateTestCaseJob < ApplicationJob
     # Mark the response as failed after all attempts
     if job.arguments.first
       resp = ModelResponse.find_by(id: job.arguments.first)
-      resp&.update(status: "failed")
+      if resp
+        resp.update(status: "failed")
+        resp.evaluation_run.refresh_status!
+      end
     end
   end
 
@@ -35,9 +38,6 @@ class EvaluateTestCaseJob < ApplicationJob
       status: "completed"
     )
 
-    # Check if all responses in this run are completed
-    if run.model_responses.where.not(status: "completed").empty?
-      run.update!(status: "completed")
-    end
+    run.refresh_status!
   end
 end

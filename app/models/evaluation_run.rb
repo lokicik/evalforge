@@ -5,7 +5,7 @@ class EvaluationRun < ApplicationRecord
   has_secure_token :share_token
 
   validates :name, presence: true
-  validates :status, inclusion: { in: %w[pending running completed failed] }
+  validates :status, inclusion: { in: %w[pending running completed partial failed] }
   validates :llm_model, inclusion: { in: LlmProviderService.supported_model_keys }
   validate :prompt_version_belongs_to_project
 
@@ -55,6 +55,52 @@ class EvaluationRun < ApplicationRecord
 
   def failures_count
     model_responses.joins(:review).where(reviews: { status: "failed" }).count
+  end
+
+  def pending_responses_count
+    model_responses.where(status: "pending").count
+  end
+
+  def completed_responses_count
+    model_responses.where(status: "completed").count
+  end
+
+  def failed_responses_count
+    model_responses.where(status: "failed").count
+  end
+
+  def retryable_model_responses
+    model_responses.where(status: "failed")
+  end
+
+  def test_case_ids
+    model_responses.order(:id).pluck(:test_case_id).uniq
+  end
+
+  def status_summary
+    return "No responses have been generated yet." if model_responses.empty?
+    return "Responses are still being generated." if pending_responses_count.positive?
+    return "All response jobs failed." if failed_responses_count == model_responses.count
+    return "Run completed with partial failures." if failed_responses_count.positive?
+
+    "All response jobs completed successfully."
+  end
+
+  def refresh_status!
+    next_status =
+      if model_responses.empty?
+        "pending"
+      elsif pending_responses_count.positive?
+        "running"
+      elsif failed_responses_count == model_responses.count
+        "failed"
+      elsif failed_responses_count.positive?
+        "partial"
+      else
+        "completed"
+      end
+
+    update!(status: next_status) if status != next_status
   end
 
   private

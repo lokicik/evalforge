@@ -44,4 +44,43 @@ class EvaluationRunTest < ActiveSupport::TestCase
     assert_not_includes report_template, "raw_response"
     assert_not_includes report_template, "review.notes"
   end
+
+  test "refresh_status marks partial and failed runs correctly" do
+    user = User.create!(
+      email_address: "status-owner@example.com",
+      password: "password",
+      password_confirmation: "password"
+    )
+    project = Project.create!(user: user, name: "Status Project")
+    prompt = project.prompts.create!(name: "Status Prompt")
+    prompt_version = prompt.prompt_versions.create!(
+      version_number: 1,
+      system_prompt: "System",
+      user_prompt_template: "Hi {{name}}",
+      description: "Version"
+    )
+    first_case = project.test_cases.create!(input_variables: { name: "Ada" }, expected_behavior: "Be concise", difficulty: "low")
+    second_case = project.test_cases.create!(input_variables: { name: "Linus" }, expected_behavior: "Be concise", difficulty: "low")
+
+    run = project.evaluation_runs.create!(
+      name: "Status Run",
+      prompt_version: prompt_version,
+      llm_model: "gpt-4o",
+      status: "running"
+    )
+
+    run.model_responses.create!(test_case: first_case, status: "completed", raw_response: "ok")
+    run.model_responses.create!(test_case: second_case, status: "failed")
+
+    run.refresh_status!
+
+    assert_equal "partial", run.status
+    assert_equal 1, run.completed_responses_count
+    assert_equal 1, run.failed_responses_count
+
+    run.model_responses.update_all(status: "failed")
+    run.refresh_status!
+
+    assert_equal "failed", run.status
+  end
 end

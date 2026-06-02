@@ -2,7 +2,7 @@ require "csv"
 
 class EvaluationRunsController < ApplicationController
   before_action :set_project, except: %i[ report ]
-  before_action :set_evaluation_run, only: %i[ show destroy report export_csv ]
+  before_action :set_evaluation_run, only: %i[ show destroy report export_csv retry_failed rerun ]
 
   # Skip auth for public report page!
   allow_unauthenticated_access only: %i[ report ]
@@ -36,42 +36,15 @@ class EvaluationRunsController < ApplicationController
     end
 
     ActiveRecord::Base.transaction do
-      if @evaluation_run.save
-        prompt_version = @evaluation_run.prompt_version
-
-        if @evaluation_run.llm_model == "manual"
-          tc_ids.each do |tc_id|
-            test_case = @project.test_cases.find(tc_id)
-            raw_response = generate_mock_response(prompt_version, test_case, "manual")
-
-            @evaluation_run.model_responses.create!(
-              test_case: test_case,
-              raw_response: raw_response,
-              status: "completed",
-              tokens_used: 150,
-              cost: BigDecimal("0.0000")
-            )
-          end
-          @evaluation_run.update!(status: "completed")
-          redirect_to project_evaluation_run_path(@project, @evaluation_run), notice: "Manual evaluation run started and templates generated."
-        else
-          # Async Job Execution
-          @evaluation_run.update!(status: "running")
-
-          tc_ids.each do |tc_id|
-            test_case = @project.test_cases.find(tc_id)
-            
-            model_response = @evaluation_run.model_responses.create!(
-              test_case: test_case,
-              status: "pending"
-            )
-
-            # Queue background job
-            EvaluateTestCaseJob.perform_later(model_response.id)
+      if launch_evaluation_run!(@evaluation_run, tc_ids)
+        notice =
+          if @evaluation_run.llm_model == "manual"
+            "Manual evaluation run started and templates generated."
+          else
+            "Evaluation run launched! Responses are being generated in the background."
           end
 
-          redirect_to project_evaluation_run_path(@project, @evaluation_run), notice: "Evaluation run launched! Responses are being generated in the background."
-        end
+        redirect_to project_evaluation_run_path(@project, @evaluation_run), notice: notice
       else
         load_run_form_data
         render template: "evaluation_runs/new", status: :unprocessable_entity
@@ -82,6 +55,55 @@ class EvaluationRunsController < ApplicationController
   def destroy
     @evaluation_run.destroy
     redirect_to project_path(@project, tab: "evaluation_runs"), notice: "Evaluation run was successfully deleted."
+  end
+
+  def retry_failed
+    failed_responses = @evaluation_run.retryable_model_responses.includes(:review, :scores)
+
+    if failed_responses.empty?
+      redirect_to project_evaluation_run_path(@project, @evaluation_run), notice: "No failed responses were available to retry."
+      return
+    end
+
+    ActiveRecord::Base.transaction do
+      failed_responses.each do |response|
+        response.review&.destroy!
+        response.scores.destroy_all
+        response.update!(
+          raw_response: nil,
+          tokens_used: nil,
+          cost: nil,
+          status: "pending"
+        )
+        EvaluateTestCaseJob.perform_later(response.id)
+      end
+
+      @evaluation_run.refresh_status!
+    end
+
+    redirect_to project_evaluation_run_path(@project, @evaluation_run), notice: "Retrying #{failed_responses.size} failed response#{'s' unless failed_responses.size == 1}."
+  end
+
+  def rerun
+    rerun = @project.evaluation_runs.build(
+      name: "#{@evaluation_run.name} Rerun #{Time.current.strftime('%Y-%m-%d %H:%M')}",
+      prompt_version: @evaluation_run.prompt_version,
+      llm_model: @evaluation_run.llm_model
+    )
+
+    created = false
+    ActiveRecord::Base.transaction do
+      created = launch_evaluation_run!(rerun, @evaluation_run.test_case_ids)
+      raise ActiveRecord::Rollback unless created
+    end
+
+    if created
+      redirect_to project_evaluation_run_path(@project, rerun), notice: "Rerun created from #{@evaluation_run.name}."
+    else
+      redirect_to project_evaluation_run_path(@project, @evaluation_run), alert: "The rerun could not be created."
+    end
+  rescue ActiveRecord::RecordInvalid
+    redirect_to project_evaluation_run_path(@project, @evaluation_run), alert: "The rerun could not be created."
   end
 
   # Public report page (read-only)
@@ -200,5 +222,40 @@ class EvaluationRunsController < ApplicationController
     "Draft your qualitative response details or use the standard template below:\n" \
     "\"Based on your conversation, I understand you are feeling ignored by your friend. It is completely natural to feel hurt when someone we care about seems distant...\"\n\n" \
     "Resolved prompt preview:\n#{user_prompt.first(200)}"
+  end
+
+  def launch_evaluation_run!(evaluation_run, tc_ids)
+    return false unless evaluation_run.save
+
+    prompt_version = evaluation_run.prompt_version
+
+    if evaluation_run.llm_model == "manual"
+      tc_ids.each do |tc_id|
+        test_case = @project.test_cases.find(tc_id)
+        raw_response = generate_mock_response(prompt_version, test_case, "manual")
+
+        evaluation_run.model_responses.create!(
+          test_case: test_case,
+          raw_response: raw_response,
+          status: "completed",
+          tokens_used: 150,
+          cost: BigDecimal("0.0000")
+        )
+      end
+    else
+      tc_ids.each do |tc_id|
+        test_case = @project.test_cases.find(tc_id)
+
+        model_response = evaluation_run.model_responses.create!(
+          test_case: test_case,
+          status: "pending"
+        )
+
+        EvaluateTestCaseJob.perform_later(model_response.id)
+      end
+    end
+
+    evaluation_run.refresh_status!
+    true
   end
 end
