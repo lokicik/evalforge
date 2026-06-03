@@ -8,6 +8,7 @@ class EvaluationRun < ApplicationRecord
   validates :status, inclusion: { in: %w[pending running completed partial failed] }
   validates :llm_model, inclusion: { in: LlmProviderService.supported_model_keys }
   validate :prompt_version_belongs_to_project
+  validate :llm_model_allowed_for_project
 
   def to_param
     share_token
@@ -202,5 +203,12 @@ class EvaluationRun < ApplicationRecord
     return if prompt_version.prompt.project_id == project_id
 
     errors.add(:prompt_version, "must belong to this project")
+  end
+
+  def llm_model_allowed_for_project
+    return if project.blank? || llm_model.blank?
+    return if project.allowed_llm_models.include?(llm_model)
+
+    errors.add(:llm_model, "is not enabled for this project")
   end
 end

@@ -20,6 +20,20 @@ class LlmProviderServiceTest < ActiveSupport::TestCase
     assert_nil LlmProviderService.openrouter_model_for("manual")
   end
 
+  test "options for select can be scoped to a project allowlist" do
+    options = LlmProviderService.options_for_select(%w[manual claude-3-5-sonnet])
+
+    assert_equal [
+      [ "Manual Grading", "manual" ],
+      [ "Claude 3.5 Sonnet via OpenRouter", "claude-3-5-sonnet" ]
+    ], options
+  end
+
+  test "missing key messaging is only shown for OpenRouter-backed models" do
+    assert_nil LlmProviderService.missing_key_message("manual")
+    assert_includes LlmProviderService.missing_key_message("gpt-4o"), "OPENROUTER_API_KEY"
+  end
+
   test "missing OpenRouter API key falls back to mock output and logs a warning" do
     warnings = []
 

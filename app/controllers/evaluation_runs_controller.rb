@@ -15,6 +15,7 @@ class EvaluationRunsController < ApplicationController
 
   def new
     @evaluation_run = @project.evaluation_runs.build
+    @evaluation_run.llm_model = @project.default_llm_model_or_fallback
     load_run_form_data
   end
 
@@ -272,6 +273,13 @@ class EvaluationRunsController < ApplicationController
   def load_run_form_data
     @prompt_versions = PromptVersion.joins(prompt: :project).where(projects: { id: @project.id }).order("prompts.name ASC, prompt_versions.version_number DESC")
     @test_cases = @project.test_cases.order(created_at: :desc)
+    @llm_model_options = @project.allowed_llm_options_for_select
+    @llm_provider_warning = nil
+
+    unless ENV["OPENROUTER_API_KEY"].present?
+      selected_model = @evaluation_run.llm_model.presence || @project.default_llm_model_or_fallback
+      @llm_provider_warning = LlmProviderService.missing_key_message(selected_model)
+    end
   end
 
   def generate_mock_response(prompt_version, test_case, model_name)

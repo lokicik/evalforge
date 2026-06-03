@@ -22,6 +22,45 @@
         class: "block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" %>
   </div>
 
+  <div class="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+    <div>
+      <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">Model Configuration</h3>
+      <p class="mt-1 text-xs text-slate-400">Choose which models this project can use and which one should be preselected for new runs.</p>
+    </div>
+
+    <div class="space-y-3">
+      <%= f.label :allowed_llm_models, "Enabled Models", class: "block text-sm font-semibold text-slate-700 dark:text-slate-300" %>
+      <div class="grid grid-cols-1 gap-3">
+        <% LlmProviderService.options_for_select.each do |label, value| %>
+          <label class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/40 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-900 transition">
+            <%= check_box_tag "project[allowed_llm_models][]", value, project.allowed_llm_models.include?(value), class: "mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" %>
+            <span class="space-y-1">
+              <span class="block text-sm font-semibold text-slate-800 dark:text-slate-200"><%= label %></span>
+              <span class="block text-[11px] text-slate-400">
+                <% if value == "manual" %>
+                  Manual templates only. No provider call is made.
+                <% else %>
+                  OpenRouter-backed generation for evaluation runs.
+                <% end %>
+              </span>
+            </span>
+          </label>
+        <% end %>
+      </div>
+      <%= hidden_field_tag "project[allowed_llm_models][]", "" %>
+    </div>
+
+    <div>
+      <%= f.label :default_llm_model, "Default Model For New Runs", class: "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1" %>
+      <%= f.select :default_llm_model, LlmProviderService.options_for_select(project.allowed_llm_models), {},
+          class: "block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" %>
+      <p class="mt-2 text-xs text-slate-400">Run creators can still override this per evaluation run as long as the model stays within the enabled project set.</p>
+      <% unless ENV["OPENROUTER_API_KEY"].present? %>
+        <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">OpenRouter is not configured in this environment. Non-manual runs will fall back to mock responses until <code>OPENROUTER_API_KEY</code> is set.</p>
+      <% end %>
+    </div>
+  </div>
+
   <div class="flex items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
     <%= f.submit project.new_record? ? "Create Project" : "Save Changes", 
         class: "py-3 px-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg hover:shadow-indigo-500/25 transition duration-200 cursor-pointer text-sm" %>

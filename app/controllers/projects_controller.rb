@@ -61,6 +61,7 @@ class ProjectsController < ApplicationController
     @test_case_difficulty_options = %w[low medium high]
     @import_errors = Array(flash[:import_errors])
     @import_summary = flash[:import_summary]
+    @project_model_warning = LlmProviderService.missing_key_message(@project.default_llm_model_or_fallback) unless ENV["OPENROUTER_API_KEY"].present?
   end
 
   def new
@@ -157,7 +158,7 @@ class ProjectsController < ApplicationController
   end
 
   def project_params
-    params.require(:project).permit(:name, :description)
+    params.require(:project).permit(:name, :description, :default_llm_model, allowed_llm_models: [])
   end
 
   def parse_date_param(value)

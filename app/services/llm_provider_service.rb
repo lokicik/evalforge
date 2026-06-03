@@ -29,12 +29,26 @@ class LlmProviderService
     MODEL_CATALOG.keys
   end
 
-  def self.options_for_select
-    MODEL_CATALOG.map { |key, config| [ config[:label], key ] }
+  def self.non_manual_model_keys
+    supported_model_keys - [ "manual" ]
+  end
+
+  def self.options_for_select(model_keys = supported_model_keys)
+    MODEL_CATALOG.slice(*model_keys).map { |key, config| [ config[:label], key ] }
   end
 
   def self.openrouter_model_for(model_name)
     MODEL_CATALOG.dig(model_name, :openrouter_model)
+  end
+
+  def self.openrouter_required_for?(model_name)
+    non_manual_model_keys.include?(model_name)
+  end
+
+  def self.missing_key_message(model_name)
+    return unless openrouter_required_for?(model_name)
+
+    "OPENROUTER_API_KEY is not configured. #{model_name} runs will fall back to mock responses until the key is set."
   end
 
   private
