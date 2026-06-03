@@ -67,11 +67,19 @@
     <div class="space-y-6">
       <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 shadow-sm space-y-6">
         <div>
-          <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-1">Qualitative Grading</h2>
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-1"><%= @review.persisted? ? "Edit Review" : "Qualitative Grading" %></h2>
           <p class="text-xs text-slate-400">Score each criteria on a 1 (poor) to 5 (excellent) scale</p>
         </div>
 
-        <%= form_with url: project_model_response_reviews_path(@project, @model_response), local: true, class: "space-y-6" do |f| %>
+        <div class="rounded-2xl border border-indigo-100 dark:border-indigo-900 bg-indigo-50/40 dark:bg-indigo-950/20 px-4 py-3 text-xs text-indigo-700 dark:text-indigo-300">
+          <% if @model_response.claimed_by == Current.user %>
+            Claimed by you <%= @model_response.claimed_at.present? ? "at #{@model_response.claimed_at.strftime('%b %d, %H:%M')}" : "" %>.
+          <% elsif @review.persisted? %>
+            Last reviewed by <strong><%= @review.reviewer.email_address %></strong>.
+          <% end %>
+        </div>
+
+        <%= form_with url: (@review.persisted? ? project_model_response_review_path(@project, @model_response, @review) : project_model_response_reviews_path(@project, @model_response)), method: (@review.persisted? ? :patch : :post), local: true, class: "space-y-6" do |f| %>
           <input type="hidden" name="return_to" value="<%= params[:return_to] %>" />
 
           <!-- Rubric Criteria Scores -->
@@ -93,7 +101,7 @@
                   <div class="flex items-center justify-between gap-2 max-w-sm pt-2">
                     <% (1..5).each do |num| %>
                       <label class="flex-grow flex flex-col items-center justify-center py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 cursor-pointer text-xs font-bold transition hover:bg-indigo-50 dark:hover:bg-indigo-950/20 hover:border-indigo-200 dark:hover:border-indigo-900 text-slate-500 dark:text-slate-300">
-                        <input type="radio" name="scores[<%= crit.id %>]" value="<%= num %>" required class="sr-only peer" />
+                        <input type="radio" name="scores[<%= crit.id %>]" value="<%= num %>" <%= "checked" if @scores_by_criterion[crit.id]&.value == num %> required class="sr-only peer" />
                         <span class="peer-checked:text-indigo-600 dark:peer-checked:text-indigo-400 peer-checked:scale-110 transition duration-150"><%= num %></span>
                       </label>
                     <% end %>
@@ -111,7 +119,7 @@
                   </style>
 
                   <div>
-                    <input type="text" name="feedback[<%= crit.id %>]" placeholder="Feedback comment for this criterion (optional)..." 
+                    <input type="text" name="feedback[<%= crit.id %>]" value="<%= @scores_by_criterion[crit.id]&.feedback %>" placeholder="Feedback comment for this criterion (optional)..."
                         class="block w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500" />
                   </div>
                 </div>
@@ -129,7 +137,7 @@
             <div class="grid grid-cols-2 gap-4">
               <!-- Pass Option -->
               <label class="flex items-center justify-center gap-2 py-3 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl cursor-pointer hover:bg-emerald-50/30 hover:border-emerald-300 dark:hover:bg-emerald-950/10 transition group text-sm font-bold text-slate-700 dark:text-slate-300">
-                <input type="radio" name="status" value="passed" required class="sr-only peer" />
+                <input type="radio" name="status" value="passed" <%= "checked" if @review.status == "passed" %> required class="sr-only peer" />
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
                 </svg>
@@ -138,7 +146,7 @@
 
               <!-- Fail Option -->
               <label class="flex items-center justify-center gap-2 py-3 border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-xl cursor-pointer hover:bg-rose-50/30 hover:border-rose-300 dark:hover:bg-rose-950/10 transition group text-sm font-bold text-slate-700 dark:text-slate-300">
-                <input type="radio" name="status" value="failed" required class="sr-only peer" />
+                <input type="radio" name="status" value="failed" <%= "checked" if @review.status == "failed" %> required class="sr-only peer" />
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-slate-400 group-hover:text-rose-500 transition">
                   <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                 </svg>
@@ -150,13 +158,46 @@
           <!-- Reviewer Notes -->
           <div class="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
             <%= f.label :notes, "Reviewer Notes & Action Items", class: "block text-xs font-bold uppercase text-slate-400 tracking-wider mb-1" %>
-            <%= f.text_area :notes, rows: 3, placeholder: "Add grading rationale, constructive critiques, or failure details...", 
+            <%= f.text_area :notes, rows: 3, placeholder: "Add grading rationale, constructive critiques, or failure details...",
                 class: "block w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 text-sm" %>
           </div>
 
           <div class="flex items-center gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
-            <%= f.submit "Submit Grade", 
+            <%= f.submit(@review.persisted? ? "Save Review Update" : "Submit Grade",
                 class: "py-3 px-5 w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg hover:shadow-indigo-500/25 transition duration-200 cursor-pointer text-center text-sm" %>
+          </div>
+        <% end %>
+
+        <% if @audit_events.any? %>
+          <div class="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-3">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Review History</h3>
+              <p class="text-xs text-slate-400">Audit trail for grading changes on this response.</p>
+            </div>
+            <div class="space-y-3">
+              <% @audit_events.each do |event| %>
+                <div class="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-800/30 p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <p class="text-xs font-bold text-slate-800 dark:text-slate-200"><%= event.action.capitalize %> by <%= event.actor.email_address %></p>
+                    <p class="text-[11px] text-slate-400"><%= event.created_at.strftime("%b %d, %Y %H:%M") %></p>
+                  </div>
+                  <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Status:
+                    <span class="font-semibold text-slate-700 dark:text-slate-200"><%= event.previous_status || "-" %></span>
+                    →
+                    <span class="font-semibold text-slate-700 dark:text-slate-200"><%= event.new_status %></span>
+                  </p>
+                  <% if event.previous_notes.present? || event.new_notes.present? %>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Notes:
+                      <span class="font-semibold text-slate-700 dark:text-slate-200"><%= event.previous_notes.presence || "-" %></span>
+                      →
+                      <span class="font-semibold text-slate-700 dark:text-slate-200"><%= event.new_notes.presence || "-" %></span>
+                    </p>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
           </div>
         <% end %>
       </div>

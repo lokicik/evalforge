@@ -34,7 +34,11 @@ Rails.application.routes.draw do
       post :revoke_share_token, on: :member
     end
     resources :model_responses, only: [] do
-      resources :reviews, only: %i[ new create ]
+      member do
+        post :claim_review
+        post :release_review
+      end
+      resources :reviews, only: %i[ new create edit update ]
     end
   end
 

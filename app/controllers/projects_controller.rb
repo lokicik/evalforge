@@ -96,14 +96,13 @@ class ProjectsController < ApplicationController
 
   # Cross-project Human Review Queue
   def review_queue
-    # All model responses belonging to current user's projects that are completed and do not have a review yet!
     @model_responses = ModelResponse.joins(evaluation_run: :project)
                                     .where(projects: { user_id: Current.user.id })
                                     .where(status: "completed")
                                     .left_outer_joins(:review)
                                     .where(reviews: { id: nil })
-                                    .includes(:test_case, evaluation_run: { prompt_version: :prompt })
-                                    .order(created_at: :asc)
+                                    .includes(:test_case, :claimed_by, evaluation_run: { prompt_version: :prompt })
+                                    .order(Arel.sql("CASE WHEN model_responses.claimed_by_id = #{Current.user.id} THEN 0 WHEN model_responses.claimed_by_id IS NULL THEN 1 ELSE 2 END"), claimed_at: :asc, created_at: :asc)
   end
 
   # Prompt Version Comparison Dashboard

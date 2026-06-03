@@ -1,6 +1,7 @@
 class ModelResponse < ApplicationRecord
   belongs_to :evaluation_run
   belongs_to :test_case
+  belongs_to :claimed_by, class_name: "User", optional: true
 
   has_many :scores, dependent: :destroy
   has_one :review, dependent: :destroy
@@ -39,5 +40,21 @@ class ModelResponse < ApplicationRecord
 
   def reviewed?
     review.present?
+  end
+
+  def claimed?
+    claimed_by.present?
+  end
+
+  def claimable_by?(user)
+    !reviewed? && (claimed_by.nil? || claimed_by == user)
+  end
+
+  def claim_for!(user)
+    update!(claimed_by: user, claimed_at: Time.current)
+  end
+
+  def release_claim!
+    update!(claimed_by: nil, claimed_at: nil)
   end
 end

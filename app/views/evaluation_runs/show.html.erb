@@ -314,8 +314,12 @@
                       <% else %>
                         <span class="inline-flex px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400">Failed</span>
                       <% end %>
+                      <span class="mt-1 block text-[10px] text-slate-400">By <%= resp.review.reviewer.email_address %></span>
                     <% else %>
                       <span class="inline-flex px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400">Pending Review</span>
+                      <% if resp.claimed? %>
+                        <span class="mt-1 block text-[10px] text-slate-400">Claimed by <%= resp.claimed_by.email_address %></span>
+                      <% end %>
                     <% end %>
                   </td>
 
@@ -334,7 +338,7 @@
                     <% elsif resp.status == "failed" %>
                       <span class="text-rose-500 italic">Retry from run actions</span>
                     <% elsif resp.reviewed? %>
-                      <span class="text-slate-400 italic">Graded</span>
+                      <%= link_to "Edit Review", edit_project_model_response_review_path(@project, resp, resp.review), class: "text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-bold", target: "_top" %>
                     <% else %>
                       <%= link_to "Grade", new_project_model_response_review_path(@project, resp), class: "text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-bold", target: "_top" %>
                     <% end %>
