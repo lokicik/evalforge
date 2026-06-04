@@ -109,46 +109,26 @@ class ProjectsController < ApplicationController
   # Prompt Version Comparison Dashboard
   def comparison_dashboard
     @project = Current.user.projects.find(params[:project_id])
-    @prompts = @project.prompts.includes(:prompt_versions).order(created_at: :desc)
-    @selected_prompt = params[:prompt_id].present? ? @project.prompts.find(params[:prompt_id]) : @prompts.first
+    @run_model = params[:run_model].to_s.strip
+    @run_from = parse_date_param(params[:run_from].to_s.strip)
+    @run_to = parse_date_param(params[:run_to].to_s.strip)
 
-    if @selected_prompt
-      @versions = @selected_prompt.prompt_versions.order(version_number: :desc)
-      
-      @comparison_data = @versions.map do |version|
-        total_scores = Score.joins(model_response: :evaluation_run).where(evaluation_runs: { prompt_version_id: version.id })
-        avg_score = 0.0
-        
-        if total_scores.any?
-          total_points = 0.0
-          total_weights = 0.0
-          total_scores.includes(:rubric_criterion).each do |score|
-            weight = score.rubric_criterion&.weight || 1
-            total_points += (score.value.to_f / 5.0 * 100.0) * weight
-            total_weights += weight
-          end
-          avg_score = (total_points / total_weights).round(1) if total_weights > 0
-        end
+    @analytics = ProjectAnalytics.new(
+      project: @project,
+      prompt_id: params[:prompt_id],
+      run_model: @run_model,
+      run_from: @run_from,
+      run_to: @run_to
+    )
 
-        responses = ModelResponse.joins(:evaluation_run).where(evaluation_runs: { prompt_version_id: version.id })
-        reviewed_count = responses.joins(:review).count
-        passed_count = responses.joins(:review).where(reviews: { status: "passed" }).count
-        failures_count = responses.joins(:review).where(reviews: { status: "failed" }).count
-        
-        pass_rate = reviewed_count > 0 ? ((passed_count.to_f / reviewed_count) * 100.0).round(1) : 0.0
-
-        {
-          version: version,
-          avg_score: avg_score,
-          pass_rate: pass_rate,
-          reviewed_cases: reviewed_count,
-          failures: failures_count
-        }
-      end
-    else
-      @versions = []
-      @comparison_data = []
-    end
+    @prompts = @analytics.prompts
+    @selected_prompt = @analytics.selected_prompt
+    @comparison_data = @analytics.comparison_data
+    @summary_metrics = @analytics.summary_metrics
+    @trend_rows = @analytics.trend_rows
+    @criterion_failure_aggregates = @analytics.criterion_failure_aggregates
+    @weakest_test_cases = @analytics.weakest_test_cases
+    @run_model_options = @analytics.available_models
   end
 
   private
