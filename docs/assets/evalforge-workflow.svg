@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" fill="none">
+  <rect width="1200" height="720" rx="32" fill="#0F172A"/>
+  <rect x="40" y="40" width="1120" height="640" rx="28" fill="url(#bg)"/>
+  <text x="84" y="120" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700">EvalForge Workflow</text>
+  <text x="84" y="158" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="20">A portfolio-ready overview of how prompt evaluation moves through the product.</text>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="84" y="220" width="206" height="130" rx="24" fill="#EEF2FF" fill-opacity="0.92"/>
+    <text x="108" y="260" fill="#312E81" font-size="16" font-weight="700">1. Project Setup</text>
+    <text x="108" y="292" fill="#4338CA" font-size="14">Prompts</text>
+    <text x="108" y="316" fill="#4338CA" font-size="14">Test Cases</text>
+    <text x="108" y="340" fill="#4338CA" font-size="14">Rubrics</text>
+    <rect x="348" y="220" width="206" height="130" rx="24" fill="#DBEAFE" fill-opacity="0.92"/>
+    <text x="372" y="260" fill="#1E3A8A" font-size="16" font-weight="700">2. Evaluation Run</text>
+    <text x="372" y="292" fill="#1D4ED8" font-size="14">Prompt Version</text>
+    <text x="372" y="316" fill="#1D4ED8" font-size="14">Model Choice</text>
+    <text x="372" y="340" fill="#1D4ED8" font-size="14">Queued Responses</text>
+    <rect x="612" y="220" width="206" height="130" rx="24" fill="#DCFCE7" fill-opacity="0.92"/>
+    <text x="636" y="260" fill="#14532D" font-size="16" font-weight="700">3. Human Review</text>
+    <text x="636" y="292" fill="#15803D" font-size="14">Claim Queue Items</text>
+    <text x="636" y="316" fill="#15803D" font-size="14">Score Criteria</text>
+    <text x="636" y="340" fill="#15803D" font-size="14">Audit Changes</text>
+    <rect x="876" y="220" width="240" height="130" rx="24" fill="#FFE4E6" fill-opacity="0.95"/>
+    <text x="900" y="260" fill="#9F1239" font-size="16" font-weight="700">4. Reporting + Sharing</text>
+    <text x="900" y="292" fill="#BE123C" font-size="14">Run Analytics</text>
+    <text x="900" y="316" fill="#BE123C" font-size="14">CSV Exports</text>
+    <text x="900" y="340" fill="#BE123C" font-size="14">Sanitized Public Reports</text>
+    <path d="M290 285H348" stroke="#C7D2FE" stroke-width="8" stroke-linecap="round"/>
+    <path d="M554 285H612" stroke="#93C5FD" stroke-width="8" stroke-linecap="round"/>
+    <path d="M818 285H876" stroke="#86EFAC" stroke-width="8" stroke-linecap="round"/>
+    <rect x="84" y="426" width="1032" height="188" rx="26" fill="#020617" fill-opacity="0.34" stroke="#334155"/>
+    <text x="112" y="470" fill="#F8FAFC" font-size="22" font-weight="700">What this app demonstrates</text>
+    <text x="112" y="514" fill="#CBD5E1" font-size="18">• Rails domain modeling for a non-trivial product workflow</text>
+    <text x="112" y="548" fill="#CBD5E1" font-size="18">• Background job orchestration for model-backed runs</text>
+    <text x="112" y="582" fill="#CBD5E1" font-size="18">• Human-in-the-loop review operations with claiming and audit history</text>
+    <text x="620" y="514" fill="#CBD5E1" font-size="18">• Public-safe reporting and export surfaces</text>
+    <text x="620" y="548" fill="#CBD5E1" font-size="18">• Project-level model configuration instead of hardcoded provider behavior</text>
+    <text x="620" y="582" fill="#CBD5E1" font-size="18">• A clean portfolio story for prompt evaluation infrastructure</text>
+  </g>
+  <defs>
+    <linearGradient id="bg" x1="40" y1="40" x2="1160" y2="680" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111827"/>
+      <stop offset="0.48" stop-color="#1E1B4B"/>
+      <stop offset="1" stop-color="#172554"/>
+    </linearGradient>
+  </defs>
+</svg>

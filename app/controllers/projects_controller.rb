@@ -62,6 +62,7 @@ class ProjectsController < ApplicationController
     @import_errors = Array(flash[:import_errors])
     @import_summary = flash[:import_summary]
     @project_model_warning = LlmProviderService.missing_key_message(@project.default_llm_model_or_fallback) unless ENV["OPENROUTER_API_KEY"].present?
+    @onboarding_steps = build_onboarding_steps(@project)
   end
 
   def new
@@ -166,5 +167,38 @@ class ProjectsController < ApplicationController
     Date.iso8601(value)
   rescue ArgumentError
     nil
+  end
+
+  def build_onboarding_steps(project)
+    [
+      {
+        title: "Create at least one prompt version",
+        complete: project.prompts.joins(:prompt_versions).exists?,
+        cta_label: "Add Prompt",
+        cta_path: new_project_prompt_path(project),
+        detail: "Versioned prompts are the core of each evaluation run."
+      },
+      {
+        title: "Add a reusable benchmark dataset",
+        complete: project.test_cases.exists?,
+        cta_label: "Add Test Case",
+        cta_path: new_project_test_case_path(project),
+        detail: "Use tags and difficulty levels so failures are easier to interpret later."
+      },
+      {
+        title: "Define a scoring rubric",
+        complete: project.rubrics.joins(:rubric_criteria).exists?,
+        cta_label: "Add Rubric",
+        cta_path: new_project_rubric_path(project),
+        detail: "Weighted criteria turn qualitative reviews into comparable run metrics."
+      },
+      {
+        title: "Launch and review an evaluation run",
+        complete: project.evaluation_runs.exists?,
+        cta_label: "Start Run",
+        cta_path: new_project_evaluation_run_path(project),
+        detail: "Runs connect prompt versions, test cases, provider settings, and reviewer workflow."
+      }
+    ]
   end
 end

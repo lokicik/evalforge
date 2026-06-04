@@ -4,6 +4,12 @@ EvalForge is a Rails app for prompt evaluation. It lets you version prompts, run
 
 The app is built for teams who want something more structured than ad hoc prompt tinkering: each project keeps its prompts, test cases, rubric criteria, runs, exports, and review history in one place.
 
+## At a glance
+
+- Product tour: [docs/DEMO_GUIDE.md](/C:/Users/LOKMAN/Desktop/personalProjects/evalforge/docs/DEMO_GUIDE.md)
+- Architecture notes: [docs/ARCHITECTURE.md](/C:/Users/LOKMAN/Desktop/personalProjects/evalforge/docs/ARCHITECTURE.md)
+- Workflow visual: [docs/assets/evalforge-workflow.svg](/C:/Users/LOKMAN/Desktop/personalProjects/evalforge/docs/assets/evalforge-workflow.svg)
+
 ## What you can do
 
 - Create evaluation projects with their own prompt library, test cases, and rubrics
@@ -135,11 +141,12 @@ bin\jobs
 The repo includes demo seed data with:
 
 - a sample user
-- a benchmark project
+- two showcase projects
 - multiple prompt versions
-- test cases
-- rubric criteria
+- test cases and weighted rubrics
 - completed runs with reviews and scores
+- a pending claimed review to demonstrate the queue workflow
+- review audit events to demonstrate review edit history
 
 Load it with:
 
